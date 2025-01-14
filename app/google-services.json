@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "305634696713",
+    "project_id": "martinezalbertoimdbapp",
+    "storage_bucket": "martinezalbertoimdbapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:305634696713:android:c45e597244ef4568e622d8",
+        "android_client_info": {
+          "package_name": "edu.pmdm.martinez_albertoimdbapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "305634696713-jaqri6gm527qkb8fqf6tnjkm3pmmmo29.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "edu.pmdm.martinez_albertoimdbapp",
+            "certificate_hash": "fef1450d765df2cf93288011f1fa298bf7050cb7"
+          }
+        },
+        {
+          "client_id": "305634696713-ts27m7vctuilaq5kr19j5fgmcu6tlinm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "edu.pmdm.martinez_albertoimdbapp",
+            "certificate_hash": "9b9520e80159316d50433b873e78fa7f8af57ef6"
+          }
+        },
+        {
+          "client_id": "305634696713-e3v3bds10r093e4nf62c2thniad8c7vn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6_I_sQfYEbQKOrToIvjgViHppjRtRFxE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "305634696713-e3v3bds10r093e4nf62c2thniad8c7vn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

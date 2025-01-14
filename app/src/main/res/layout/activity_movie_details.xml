@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <ImageView
+        android:id="@+id/posterImageView"
+        android:layout_width="match_parent"
+        android:layout_height="450dp"
+        android:layout_marginTop="16dp"
+        android:scaleType="centerCrop"
+        android:contentDescription="Movie poster"/>
+
+    <TextView
+        android:id="@+id/titleTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="16dp"
+        android:text="Movie Title"
+        android:textSize="20sp"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/plotTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Plot"
+        android:layout_marginBottom="16dp"
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/releaseDateTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Release Date"
+        android:textSize="14sp"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/ratingTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Rating"
+        android:textSize="14sp"/>
+
+    <Button
+        android:id="@+id/smsButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enviar por SMS"
+        android:layout_marginTop="20dp"
+        android:layout_gravity="center"
+        android:textColor="@android:color/white" />
+</LinearLayout>

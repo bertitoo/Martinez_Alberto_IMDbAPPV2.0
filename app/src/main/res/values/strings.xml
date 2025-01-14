@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Martinez_AlbertoIMDbAPP</string>
+    <string name="client_id">305634696713-e3v3bds10r093e4nf62c2thniad8c7vn.apps.googleusercontent.com</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="menu_home">Top 10</string>
+    <string name="menu_gallery">Favoritos</string>
+    <string name="menu_slideshow">Buscar Película</string>
+</resources>

@@ -26,20 +26,13 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 
+import edu.pmdm.martinez_albertoimdbapp.api.RapidApiKeyManager;
 import edu.pmdm.martinez_albertoimdbapp.models.MovieResponse;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-
-/**
- * Clase que muestra los detalles de una película, incluyendo su título, descripción,
- * año de lanzamiento, calificación y póster. Permite compartir los detalles de la película
- * mediante un mensaje SMS.
- *
- * @author Alberto Martínez Vadillo
- */
 
 public class MovieDetailsActivity extends AppCompatActivity {
 
@@ -51,6 +44,9 @@ public class MovieDetailsActivity extends AppCompatActivity {
     private String imdbId; // Identificador de IMDb de la película
     private String phoneNumber; // Número de teléfono del contacto seleccionado
     private String messageText; // Texto del mensaje a enviar
+
+    private RapidApiKeyManager apiKeyManager = new RapidApiKeyManager(); // Gestor de claves API
+    private OkHttpClient client = new OkHttpClient(); // Cliente HTTP reutilizable
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,12 +88,12 @@ public class MovieDetailsActivity extends AppCompatActivity {
             return;
         }
 
-        OkHttpClient client = new OkHttpClient();
+        String apiKey = apiKeyManager.getCurrentKey(); // Obtener clave actual
         String detailsUrl = "https://imdb-com.p.rapidapi.com/title/get-overview?tconst=" + imdbId;
 
         Request detailsRequest = new Request.Builder()
                 .url(detailsUrl)
-                .addHeader("x-rapidapi-key", "f7f23d7619msh83c94fd82b17f34p14e350jsn2d3cd99ac75c")
+                .addHeader("x-rapidapi-key", apiKey)
                 .addHeader("x-rapidapi-host", "imdb-com.p.rapidapi.com")
                 .build();
 
@@ -114,6 +110,10 @@ public class MovieDetailsActivity extends AppCompatActivity {
                     Log.d("MOVIE_DETAILS", "Respuesta JSON: " + responseBody);
                     runOnUiThread(() -> parseAndUpdateUI(responseBody));
                     fetchMoviePlot(imdbId);
+                } else if (response.code() == 429) { // Manejar límite alcanzado
+                    Log.e("MOVIE_DETAILS", "Límite alcanzado. Cambiando clave API.");
+                    apiKeyManager.switchToNextKey(); // Cambiar clave
+                    fetchMovieDetails(imdbId); // Reintentar
                 } else {
                     Log.e("MOVIE_DETAILS", "Error HTTP: " + response.code() + " " + response.message());
                     runOnUiThread(() -> Toast.makeText(MovieDetailsActivity.this, "Error al obtener los detalles de la película.", Toast.LENGTH_SHORT).show());
@@ -128,12 +128,12 @@ public class MovieDetailsActivity extends AppCompatActivity {
      * @param imdbId El ID de IMDb de la película.
      */
     private void fetchMoviePlot(String imdbId) {
-        OkHttpClient client = new OkHttpClient();
+        String apiKey = apiKeyManager.getCurrentKey(); // Obtener clave actual
         String plotUrl = "https://imdb-com.p.rapidapi.com/title/get-plot?tconst=" + imdbId;
 
         Request plotRequest = new Request.Builder()
                 .url(plotUrl)
-                .addHeader("x-rapidapi-key", "f7f23d7619msh83c94fd82b17f34p14e350jsn2d3cd99ac75c")
+                .addHeader("x-rapidapi-key", apiKey)
                 .addHeader("x-rapidapi-host", "imdb-com.p.rapidapi.com")
                 .build();
 
@@ -149,6 +149,10 @@ public class MovieDetailsActivity extends AppCompatActivity {
                     String responseBody = response.body().string();
                     Log.d("MOVIE_PLOT", "Respuesta JSON (plot): " + responseBody);
                     runOnUiThread(() -> parsePlot(responseBody));
+                } else if (response.code() == 429) { // Manejar límite alcanzado
+                    Log.e("MOVIE_PLOT", "Límite alcanzado. Cambiando clave API.");
+                    apiKeyManager.switchToNextKey(); // Cambiar clave
+                    fetchMoviePlot(imdbId); // Reintentar
                 } else {
                     Log.e("MOVIE_PLOT", "Error HTTP: " + response.code() + " " + response.message());
                     runOnUiThread(() -> Toast.makeText(MovieDetailsActivity.this, "Error al obtener la descripción de la película.", Toast.LENGTH_SHORT).show());

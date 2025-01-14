@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -27,6 +28,7 @@ import java.util.Map;
 import edu.pmdm.martinez_albertoimdbapp.MovieDetailsActivity;
 import edu.pmdm.martinez_albertoimdbapp.R;
 import edu.pmdm.martinez_albertoimdbapp.api.IMDBApiService;
+import edu.pmdm.martinez_albertoimdbapp.api.RapidApiKeyManager;
 import edu.pmdm.martinez_albertoimdbapp.database.FavoritesManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -41,6 +43,9 @@ public class HomeFragment extends Fragment {
     private final Map<String, Bitmap> imageCache = new HashMap<>();
     private FavoritesManager favoritesManager;
     private String userId;
+
+    private RapidApiKeyManager apiKeyManager = new RapidApiKeyManager(); // Manejo de claves API
+    private static final int MAX_RETRY_COUNT = 3; // Límite de reintentos por cada clave
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -57,16 +62,37 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Carga las películas más populares.
+     * Carga las películas más populares desde la API.
      */
     private void loadTopMovies() {
         new Thread(() -> {
-            try {
-                String response = imdbApiService.getTopMeterTitles(); // Una sola solicitud
-                parseAndDisplayMovies(response);
-            } catch (Exception e) {
-                Log.e("IMDB_ERROR", "Error al cargar películas", e);
+            int retryCount = 0;
+            final int MAX_RETRY_COUNT = 3;
+
+            while (retryCount < MAX_RETRY_COUNT * apiKeyManager.getTotalKeys()) { // Máximo intentos = claves * reintentos
+                String apiKey = apiKeyManager.getCurrentKey();
+                try {
+                    String response = imdbApiService.getTopMeterTitles(apiKey); // Usa la clave actual
+                    parseAndDisplayMovies(response);
+                    return; // Salir si tiene éxito
+                } catch (IOException e) {
+                    Log.e("IMDB_ERROR", "Error al cargar películas", e);
+
+                    if (e.getMessage().contains("429")) { // Manejar límite alcanzado
+                        Log.e("IMDB_ERROR", "Límite alcanzado. Cambiando clave API.");
+                        apiKeyManager.switchToNextKey(); // Cambiar a la siguiente clave
+                    } else {
+                        Log.e("IMDB_ERROR", "Error diferente: " + e.getMessage());
+                        break; // Salir del bucle si no es error 429
+                    }
+                }
+
+                retryCount++;
             }
+
+            requireActivity().runOnUiThread(() ->
+                    Toast.makeText(getContext(), "Error al cargar las películas. Inténtalo más tarde.", Toast.LENGTH_LONG).show()
+            );
         }).start();
     }
 
@@ -81,15 +107,12 @@ public class HomeFragment extends Fragment {
             JSONObject dataObject = jsonObject.getJSONObject("data");
             JSONArray edges = dataObject.getJSONObject("topMeterTitles").getJSONArray("edges");
 
-            int count = 0; // Contador para limitar a 10 películas
-
-            for (int i = 0; i < edges.length() && count < 10; i++) { // Limitar a 10 iteraciones
+            for (int i = 0; i < edges.length(); i++) {
                 JSONObject node = edges.getJSONObject(i).getJSONObject("node");
                 String tconst = node.getString("id");
                 String imageUrl = node.getJSONObject("primaryImage").getString("url");
                 String title = node.getJSONObject("titleText").getString("text");
 
-                count++; // Incrementar el contador
                 requireActivity().runOnUiThread(() -> addImageToGrid(imageUrl, tconst, title));
             }
         } catch (Exception e) {

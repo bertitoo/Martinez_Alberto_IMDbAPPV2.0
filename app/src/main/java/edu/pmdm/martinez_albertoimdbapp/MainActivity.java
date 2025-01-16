@@ -2,6 +2,7 @@ package edu.pmdm.martinez_albertoimdbapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -19,6 +20,7 @@ import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
+import com.facebook.login.LoginManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.squareup.picasso.Picasso;
@@ -27,12 +29,6 @@ import edu.pmdm.martinez_albertoimdbapp.databinding.ActivityMainBinding;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 
-/**
- * Actividad principal de la aplicación que configura el menú de navegación,
- * el encabezado del NavigationDrawer y el manejo de la sesión de usuario.
- *
- * @author Alberto Martínez Vadillo
- */
 public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration; // Configuración para el AppBar y NavigationDrawer
@@ -64,9 +60,13 @@ public class MainActivity extends AppCompatActivity {
 
         if (user != null) {
             // Actualizar la interfaz con los datos del usuario
-            userName.setText(user.getDisplayName());
-            userEmail.setText(user.getEmail());
-            Picasso.get().load(user.getPhotoUrl()).into(userProfilePic); // Cargar imagen de perfil usando Picasso
+            userName.setText(user.getDisplayName() != null ? user.getDisplayName() : "Usuario"); // Nombre
+            userEmail.setText(user.getEmail() != null ? user.getEmail() : "No disponible"); // Correo
+            if (user.getPhotoUrl() != null) {
+                Picasso.get().load(user.getPhotoUrl()).into(userProfilePic); // Foto de perfil
+            } else {
+                Log.d("FOTO DE PERFIL", "No se ha podido cargar la foto");
+            }
         }
 
         // Configurar GoogleSignInClient para manejar el cierre de sesión
@@ -90,16 +90,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Maneja el cierre de sesión del usuario, cerrando las sesiones de Firebase y Google.
+     * Maneja el cierre de sesión del usuario, cerrando las sesiones de Firebase, Google y Facebook.
      * Redirige a la actividad de inicio de sesión.
      */
     private void logout() {
         // Cerrar sesión en Firebase
         FirebaseAuth.getInstance().signOut();
+        LoginManager.getInstance().logOut();
 
         // Cerrar sesión de Google
         mGoogleSignInClient.signOut()
                 .addOnCompleteListener(this, task -> {
+                    // Cerrar sesión de Facebook
+                    LoginManager.getInstance().logOut();
+
                     // Redirigir a LoginActivity tras cerrar sesión
                     Intent intent = new Intent(MainActivity.this, LoginActivity.class);
                     startActivity(intent);

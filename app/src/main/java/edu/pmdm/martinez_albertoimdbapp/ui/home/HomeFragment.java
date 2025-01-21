@@ -169,9 +169,6 @@ public class HomeFragment extends Fragment {
         gridLayout.addView(imageView);
     }
 
-    /**
-     * Descarga una imagen desde una URL.
-     */
     private Bitmap getBitmapFromURL(String imageUrl) {
         try {
             URL url = new URL(imageUrl);
@@ -179,10 +176,47 @@ public class HomeFragment extends Fragment {
             connection.setDoInput(true);
             connection.connect();
             InputStream input = connection.getInputStream();
-            return BitmapFactory.decodeStream(input);
+            Bitmap originalBitmap = BitmapFactory.decodeStream(input);
+
+            // Ajustar el tamaño de la imagen
+            int maxWidth = 500; // Ancho máximo deseado
+            int maxHeight = 750; // Alto máximo deseado
+
+            return resizeBitmap(originalBitmap, maxWidth, maxHeight);
         } catch (Exception e) {
             Log.e("IMAGE_ERROR", "Error al descargar la imagen", e);
             return null;
         }
+    }
+
+    /**
+     * Redimensiona un Bitmap manteniendo la relación de aspecto.
+     *
+     * @param bitmap    El Bitmap original.
+     * @param maxWidth  Ancho máximo deseado.
+     * @param maxHeight Alto máximo deseado.
+     * @return Bitmap redimensionado.
+     */
+    private Bitmap resizeBitmap(Bitmap bitmap, int maxWidth, int maxHeight) {
+        if (bitmap == null) return null;
+
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        float aspectRatio = (float) width / height;
+
+        if (width > maxWidth || height > maxHeight) {
+            if (aspectRatio > 1) {
+                // Imagen más ancha que alta
+                width = maxWidth;
+                height = Math.round(maxWidth / aspectRatio);
+            } else {
+                // Imagen más alta que ancha
+                height = maxHeight;
+                width = Math.round(maxHeight * aspectRatio);
+            }
+        }
+
+        return Bitmap.createScaledBitmap(bitmap, width, height, true);
     }
 }

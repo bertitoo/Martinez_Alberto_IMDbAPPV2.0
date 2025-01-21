@@ -11,4 +11,7 @@
     <string name="menu_home">Top 10</string>
     <string name="menu_gallery">Favoritos</string>
     <string name="menu_slideshow">Buscar Película</string>
+
+    <string name="facebook_app_id">1124942735321406</string>
+    <string name="facebook_client">EAAPZCISQhqT4BO6w4vRE6MPXC2eNj02HPvgt8sejQaKDvPATPJ6Jgy2HKcQ4Ohy9LE3XE37TGZCFjeiFUagWG40D38ApP58ZBB992zP83p8V47dRXZBDRX8jiYTSOQfX33nkJoZAaZCxzCcuLq2sBTYw3qBzQzVeMrkor4nUBV33wWuZCGrJ7HLYf1jp99TDgnFdaOdJ2elE3vn6xaTQOFYucmkPX479RyVLZADZAh8HFEUx2zshv0MJ6XWyTmfPu6QZDZD</string>
 </resources>

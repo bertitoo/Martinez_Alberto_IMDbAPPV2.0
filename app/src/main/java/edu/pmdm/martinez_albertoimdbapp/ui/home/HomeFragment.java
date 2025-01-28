@@ -3,6 +3,7 @@ package edu.pmdm.martinez_albertoimdbapp.ui.home;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri; // <-- Importante si usamos Uri
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -32,6 +33,7 @@ import edu.pmdm.martinez_albertoimdbapp.api.RapidApiKeyManager;
 import edu.pmdm.martinez_albertoimdbapp.database.FavoritesManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserInfo; // <-- Importante para recorrer proveedores
 
 /**
  * Fragmento principal que muestra las películas más populares desde IMDb.
@@ -44,12 +46,15 @@ public class HomeFragment extends Fragment {
     private FavoritesManager favoritesManager;
     private String userId;
 
+    // ImageView para la foto de perfil (asegúrate de tenerlo en tu fragment_home.xml)
+    private ImageView profileImageView;
+
     private RapidApiKeyManager apiKeyManager = new RapidApiKeyManager(); // Manejo de claves API
-    private static final int MAX_RETRY_COUNT = 3; // Límite de reintentos por cada clave
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_home, container, false);
+
         gridLayout = root.findViewById(R.id.gridLayout);
         imdbApiService = new IMDBApiService();
         favoritesManager = new FavoritesManager(requireContext());
@@ -57,7 +62,9 @@ public class HomeFragment extends Fragment {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         userId = (user != null) ? user.getUid() : null;
 
+        // Cargar top películas
         loadTopMovies();
+
         return root;
     }
 
@@ -86,7 +93,6 @@ public class HomeFragment extends Fragment {
                         break; // Salir del bucle si no es error 429
                     }
                 }
-
                 retryCount++;
             }
 

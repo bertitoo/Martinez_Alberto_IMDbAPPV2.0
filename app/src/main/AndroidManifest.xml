@@ -17,6 +17,9 @@
 
     <queries>
         <package android:name="com.android.messaging" />
+        <package android:name="com.facebook.katana" />
+        <package android:name="com.facebook.orca" />
+        <package android:name="com.facebook.lite" />
     </queries>
 
     <application

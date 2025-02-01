@@ -1,9 +1,11 @@
 package edu.pmdm.martinez_albertoimdbapp.api;
 
+import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RapidApiKeyManager {
+    private static final String TAG = "RapidApiKeyManager";
     List<String> apiKeys = new ArrayList<>();
     private int currentKeyIndex = 0;
 
@@ -14,11 +16,15 @@ public class RapidApiKeyManager {
     }
 
     public String getCurrentKey() {
-        return apiKeys.get(currentKeyIndex);
+        String currentKey = apiKeys.get(currentKeyIndex);
+        Log.d(TAG, "Using API key [" + (currentKeyIndex + 1) + "/" + apiKeys.size() + "]: " + currentKey);
+        return currentKey;
     }
 
     public void switchToNextKey() {
         currentKeyIndex = (currentKeyIndex + 1) % apiKeys.size();
+        String nextKey = apiKeys.get(currentKeyIndex);
+        Log.d(TAG, "Switched to API key [" + (currentKeyIndex + 1) + "/" + apiKeys.size() + "]: " + nextKey);
     }
 
     public int getTotalKeys() {

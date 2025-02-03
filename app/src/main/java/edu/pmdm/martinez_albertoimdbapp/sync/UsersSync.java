@@ -30,7 +30,6 @@ public class UsersSync {
 
     /**
      * Sincroniza los datos fijos del usuario en Firestore.
-     * Se guarda en "users/{uid}" el campo "activity_log" con las claves "name", "uid" y "email".
      */
     public void syncUser(String uid, String name, String email) {
         Map<String, Object> fixedData = new HashMap<>();
@@ -51,10 +50,8 @@ public class UsersSync {
 
     /**
      * Registra un evento de login para el usuario.
-     * Siempre añade un nuevo objeto al arreglo "activity_log.history" con "login_time" (y "logout_time" vacío).
      */
     public void startSession(String uid, String name, String email) {
-        // Primero, sincroniza los datos fijos.
         syncUser(uid, name, email);
 
         firestore.collection("users").document(uid).get()
@@ -64,11 +61,9 @@ public class UsersSync {
                     if (history == null) {
                         history = new ArrayList<>();
                     }
-                    // Crear nuevo registro de login.
                     Map<String, Object> loginEvent = new HashMap<>();
                     loginEvent.put("login_time", getCurrentTime());
-                    loginEvent.put("logout_time", ""); // Aún no se ha registrado el logout
-
+                    loginEvent.put("logout_time", "");
                     history.add(loginEvent);
 
                     firestore.collection("users")
@@ -85,8 +80,6 @@ public class UsersSync {
 
     /**
      * Registra un evento de logout para el usuario.
-     * Se busca el último registro en el arreglo "activity_log.history" que tenga "logout_time" vacío
-     * y se le asigna la hora actual.
      */
     public void endSession(String uid) {
         firestore.collection("users").document(uid).get()
@@ -98,12 +91,10 @@ public class UsersSync {
                         history = new ArrayList<>();
                     }
 
-                    // Si el historial está vacío o el último registro ya tiene logout_time, entonces agregamos un nuevo registro
                     if (history.isEmpty() || (history.get(history.size() - 1).get("logout_time") != null
                             && !((String) history.get(history.size() - 1).get("logout_time")).isEmpty())) {
-                        // Creamos un registro vacío de login (o dejamos el campo login_time vacío) y asignamos el logout_time
                         Map<String, Object> logoutEvent = new HashMap<>();
-                        logoutEvent.put("login_time", ""); // O bien podrías omitirlo
+                        logoutEvent.put("login_time", "");
                         logoutEvent.put("logout_time", getCurrentTime());
                         history.add(logoutEvent);
                         firestore.collection("users")
@@ -114,7 +105,6 @@ public class UsersSync {
                                 .addOnFailureListener(e ->
                                         Log.e(TAG, "Error registrando evento LOGOUT para uid " + uid, e));
                     } else {
-                        // Si existe un registro abierto (sin logout_time) lo actualizamos
                         Map<String, Object> ultimoRegistro = history.get(history.size() - 1);
                         String logoutTime = (String) ultimoRegistro.get("logout_time");
                         if (logoutTime == null || logoutTime.isEmpty()) {
@@ -136,9 +126,7 @@ public class UsersSync {
     }
 
     /**
-     * Sincroniza la BD local a Firestore registrando el evento indicado:
-     * - "login": se llama a startSession (se añade un nuevo registro de login).
-     * - "logout": se llama a endSession (se actualiza el último registro abierto con logout_time).
+     * Sincroniza la BD local a Firestore registrando el evento indicado.
      */
     public void syncLocalToRemote(String uid, String eventType, String name, String email) {
         if ("login".equalsIgnoreCase(eventType)) {

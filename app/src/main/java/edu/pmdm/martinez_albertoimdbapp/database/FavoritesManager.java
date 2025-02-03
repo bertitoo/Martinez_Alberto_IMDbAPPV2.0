@@ -5,9 +5,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
 
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -21,12 +19,12 @@ import edu.pmdm.martinez_albertoimdbapp.sync.SyncFavorites;
 
 public class FavoritesManager {
 
-    private final FavoritesDatabaseHelper dbHelper;
+    private final DatabaseHelper dbHelper;
     private final Context context;
 
     public FavoritesManager(Context context) {
         this.context = context;
-        dbHelper = new FavoritesDatabaseHelper(context);
+        dbHelper = new DatabaseHelper(context);
     }
 
     /**
@@ -36,9 +34,9 @@ public class FavoritesManager {
         SQLiteDatabase db = dbHelper.getReadableDatabase();
 
         Cursor cursor = db.query(
-                FavoritesDatabaseHelper.TABLE_FAVORITES,
+                DatabaseHelper.TABLE_FAVORITES,
                 null,
-                FavoritesDatabaseHelper.COLUMN_MOVIE_ID + "=? AND " + FavoritesDatabaseHelper.COLUMN_USER_ID + "=?",
+                DatabaseHelper.COLUMN_MOVIE_ID + "=? AND " + DatabaseHelper.COLUMN_USER_ID + "=?",
                 new String[]{id, userId},
                 null,
                 null,
@@ -62,13 +60,13 @@ public class FavoritesManager {
         // ---------------------------
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(FavoritesDatabaseHelper.COLUMN_MOVIE_ID, id);
-        values.put(FavoritesDatabaseHelper.COLUMN_TITLE, title);
-        values.put(FavoritesDatabaseHelper.COLUMN_IMAGE_URL, imageUrl);
-        values.put(FavoritesDatabaseHelper.COLUMN_USER_ID, userId);
+        values.put(DatabaseHelper.COLUMN_MOVIE_ID, id);
+        values.put(DatabaseHelper.COLUMN_TITLE, title);
+        values.put(DatabaseHelper.COLUMN_IMAGE_URL, imageUrl);
+        values.put(DatabaseHelper.COLUMN_USER_ID, userId);
 
         db.insertWithOnConflict(
-                FavoritesDatabaseHelper.TABLE_FAVORITES,
+                DatabaseHelper.TABLE_FAVORITES,
                 null,
                 values,
                 SQLiteDatabase.CONFLICT_REPLACE
@@ -110,8 +108,8 @@ public class FavoritesManager {
         // 1) Eliminar de la DB local
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         db.delete(
-                FavoritesDatabaseHelper.TABLE_FAVORITES,
-                FavoritesDatabaseHelper.COLUMN_MOVIE_ID + "=? AND " + FavoritesDatabaseHelper.COLUMN_USER_ID + "=?",
+                DatabaseHelper.TABLE_FAVORITES,
+                DatabaseHelper.COLUMN_MOVIE_ID + "=? AND " + DatabaseHelper.COLUMN_USER_ID + "=?",
                 new String[]{id, userId}
         );
 
@@ -139,9 +137,9 @@ public class FavoritesManager {
         List<Movie> movies = new ArrayList<>();
 
         Cursor cursor = db.query(
-                FavoritesDatabaseHelper.TABLE_FAVORITES,
+                DatabaseHelper.TABLE_FAVORITES,
                 null,
-                FavoritesDatabaseHelper.COLUMN_USER_ID + "=?",
+                DatabaseHelper.COLUMN_USER_ID + "=?",
                 new String[]{userId},
                 null,
                 null,
@@ -152,15 +150,15 @@ public class FavoritesManager {
             do {
                 @SuppressLint("Range")
                 String imdbId = cursor.getString(
-                        cursor.getColumnIndex(FavoritesDatabaseHelper.COLUMN_MOVIE_ID)
+                        cursor.getColumnIndex(DatabaseHelper.COLUMN_MOVIE_ID)
                 );
                 @SuppressLint("Range")
                 String title = cursor.getString(
-                        cursor.getColumnIndex(FavoritesDatabaseHelper.COLUMN_TITLE)
+                        cursor.getColumnIndex(DatabaseHelper.COLUMN_TITLE)
                 );
                 @SuppressLint("Range")
                 String posterUrl = cursor.getString(
-                        cursor.getColumnIndex(FavoritesDatabaseHelper.COLUMN_IMAGE_URL)
+                        cursor.getColumnIndex(DatabaseHelper.COLUMN_IMAGE_URL)
                 );
 
                 Movie movie = new Movie(imdbId, posterUrl);

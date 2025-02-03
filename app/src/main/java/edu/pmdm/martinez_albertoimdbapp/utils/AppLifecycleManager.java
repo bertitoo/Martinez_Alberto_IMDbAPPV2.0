@@ -135,11 +135,17 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             // Para el login remoto es importante enviar también los datos fijos del usuario.
+            DatabaseHelper dbHelper = new DatabaseHelper(appContext);
+            String encryptedAddress = dbHelper.getUserEncryptedAddress(user.getUid());  // Obtener dirección cifrada de la base de datos
+            String encryptedPhone = dbHelper.getUserEncryptedPhone(user.getUid());      // Obtener teléfono cifrado de la base de datos
+
             new UsersSync(appContext).syncLocalToRemote(
                     user.getUid(),
                     "login",
                     user.getDisplayName() != null ? user.getDisplayName() : "Usuario",
-                    user.getEmail() != null ? user.getEmail() : "No disponible"
+                    user.getEmail() != null ? user.getEmail() : "No disponible",
+                    encryptedAddress,
+                    encryptedPhone
             );
         }
     }

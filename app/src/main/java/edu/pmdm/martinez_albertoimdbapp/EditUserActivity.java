@@ -1,6 +1,9 @@
 package edu.pmdm.martinez_albertoimdbapp;
 
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -14,13 +17,17 @@ import androidx.core.view.ViewCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
 import com.squareup.picasso.Picasso;
 
 import com.hbb20.CountryCodePicker;
 
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.google.i18n.phonenumbers.Phonenumber;
-import com.google.i18n.phonenumbers.NumberParseException;
+import edu.pmdm.martinez_albertoimdbapp.database.DatabaseHelper;
+import edu.pmdm.martinez_albertoimdbapp.utils.KeystoreManager;
 
 public class EditUserActivity extends AppCompatActivity {
 
@@ -76,6 +83,9 @@ public class EditUserActivity extends AppCompatActivity {
             if (photoUrl != null && !photoUrl.isEmpty()) {
                 Picasso.get().load(photoUrl).into(imageViewUser);
             }
+
+            // Cargar dirección y teléfono desde la base de datos
+            loadUserDataFromDatabase();
         }
 
         // Al pulsar el botón se lanza MapActivity para seleccionar la dirección
@@ -84,13 +94,14 @@ public class EditUserActivity extends AppCompatActivity {
             mapActivityLauncher.launch(mapIntent);
         });
 
-        // Al pulsar el botón de "SAVE", verificamos los datos
+        // Al pulsar el botón de "SAVE", verificamos los datos y guardamos
         Button saveButton = findViewById(R.id.buttonSave);
         saveButton.setOnClickListener(v -> saveData());
     }
 
     /**
-     * Método para guardar los datos después de verificar el número de teléfono
+     * Método para guardar los datos después de verificar el número de teléfono.
+     * Solo ciframos la dirección y el número de teléfono antes de guardarlos.
      */
     private void saveData() {
         // Verificar el número de teléfono antes de guardar los datos
@@ -100,11 +111,67 @@ public class EditUserActivity extends AppCompatActivity {
             return;
         }
 
-        // Aquí puedes agregar lógica para guardar los datos (por ejemplo, en una base de datos)
-        // Si los datos son correctos, mostramos un mensaje de éxito
+        // Recoger los datos del usuario
+        String name = ((EditText) findViewById(R.id.editTextTextName)).getText().toString();
+        String email = ((EditText) findViewById(R.id.editTextTextEmail)).getText().toString();
+        String address = editTextAddress.getText().toString();
+        String photoUrl = (findViewById(R.id.imageView).getTag() != null)
+                ? findViewById(R.id.imageView).getTag().toString()
+                : "";  // Usamos "" en caso de que no haya URL
+
+        // Obtener el UID del usuario autenticado
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            // Si no hay usuario autenticado, mostramos un mensaje y terminamos
+            Toast.makeText(this, "No hay usuario autenticado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String userUid = user.getUid(); // Obtener el UID del usuario autenticado
+
+        // Cifrar los datos de dirección y teléfono utilizando KeystoreManager
+        String encryptedAddress = KeystoreManager.encrypt(address);
+        String encryptedPhone = KeystoreManager.encrypt(phoneNumber);
+
+        // Guardar los datos en la base de datos (sin cifrar el nombre, email y photoUrl)
+        saveUserDataToDatabase(userUid, name, email, encryptedAddress, encryptedPhone, photoUrl);
+
+        // Mostrar un mensaje de éxito
         Toast.makeText(this, "Datos guardados correctamente", Toast.LENGTH_SHORT).show();
-        // Continuar con el flujo (por ejemplo, volver a la actividad anterior)
+
+        // Después de guardar los datos, redirigir a MainActivity
+        Intent intent = new Intent(EditUserActivity.this, MainActivity.class);
+        startActivity(intent);
+        finish(); // Finalizamos esta actividad para evitar que el usuario regrese a esta pantalla de edición
     }
+
+    private void saveUserDataToDatabase(String userUid, String name, String email, String encryptedAddress,
+                                        String encryptedPhone, String photoUrl) {
+        DatabaseHelper dbHelper = new DatabaseHelper(this);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseHelper.COLUMN_USER_NAME, name); // No ciframos el nombre
+        values.put(DatabaseHelper.COLUMN_USER_EMAIL, email); // No ciframos el correo
+        values.put(DatabaseHelper.COLUMN_USER_ADDRESS, encryptedAddress); // Dirección cifrada
+        values.put(DatabaseHelper.COLUMN_USER_PHONE, encryptedPhone); // Teléfono cifrado
+        values.put(DatabaseHelper.COLUMN_USER_IMAGE_URL, photoUrl); // URL de la imagen (no cifrada)
+
+        // Verificar si el usuario ya existe en la base de datos
+        Cursor cursor = db.query(DatabaseHelper.TABLE_USERS, new String[]{DatabaseHelper.COLUMN_USER_UID},
+                DatabaseHelper.COLUMN_USER_UID + " = ?", new String[]{userUid}, null, null, null);
+
+        if (cursor != null && cursor.moveToFirst()) {
+            // El usuario ya existe, actualizamos sus datos
+            db.update(DatabaseHelper.TABLE_USERS, values, DatabaseHelper.COLUMN_USER_UID + " = ?", new String[]{userUid});
+        } else {
+            // El usuario no existe, insertamos un nuevo registro
+            values.put(DatabaseHelper.COLUMN_USER_UID, userUid); // Asegúrate de incluir el UID
+            db.insert(DatabaseHelper.TABLE_USERS, null, values);
+        }
+
+        cursor.close();
+    }
+
 
     /**
      * Método para verificar el número de teléfono usando libphonenumber.
@@ -133,6 +200,54 @@ public class EditUserActivity extends AppCompatActivity {
             e.printStackTrace();
             Toast.makeText(this, "Error al parsear el número", Toast.LENGTH_SHORT).show();
             return false;
+        }
+    }
+
+    /**
+     * Método para cargar la dirección y teléfono del usuario desde la base de datos.
+     * Si existen datos, se desencriptan y se muestran en los campos correspondientes.
+     */
+    private void loadUserDataFromDatabase() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser(); // Obtener el usuario autenticado
+        if (user == null) {
+            return; // Si no hay usuario autenticado, no hacer nada
+        }
+
+        String userUid = user.getUid(); // Obtener el UID del usuario autenticado
+
+        DatabaseHelper dbHelper = new DatabaseHelper(this);
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+
+        // Consultar la base de datos para obtener la dirección y el teléfono cifrados
+        String[] projection = {
+                DatabaseHelper.COLUMN_USER_ADDRESS,
+                DatabaseHelper.COLUMN_USER_PHONE
+        };
+
+        Cursor cursor = db.query(
+                DatabaseHelper.TABLE_USERS,   // La tabla a consultar
+                projection,                   // Las columnas a devolver
+                DatabaseHelper.COLUMN_USER_UID + " = ?", // Filtro WHERE
+                new String[]{userUid},        // Los valores del filtro
+                null,                         // No agrupamos filas
+                null,                         // No filtramos por grupos
+                null                          // No ordenamos filas
+        );
+
+        if (cursor != null && cursor.moveToFirst()) {
+            // Obtener los valores cifrados
+            String encryptedAddress = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USER_ADDRESS));
+            String encryptedPhone = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USER_PHONE));
+
+            // Desencriptar los valores
+            String decryptedAddress = KeystoreManager.decrypt(encryptedAddress);
+            String decryptedPhone = KeystoreManager.decrypt(encryptedPhone);
+
+            // Mostrar los valores desencriptados en los campos correspondientes
+            editTextAddress.setText(decryptedAddress);
+            editTextNumberPhone.setText(decryptedPhone);
+
+            cursor.close();
         }
     }
 }

@@ -49,6 +49,7 @@ import edu.pmdm.martinez_albertoimdbapp.database.DatabaseHelper;
 import edu.pmdm.martinez_albertoimdbapp.databinding.ActivityMainBinding;
 import edu.pmdm.martinez_albertoimdbapp.sync.SyncFavorites;
 import edu.pmdm.martinez_albertoimdbapp.sync.UsersSync;
+import edu.pmdm.martinez_albertoimdbapp.utils.KeystoreManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -113,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Inserta o actualiza el usuario en la BD local.
+     * Inserta o actualiza el usuario en la BD local con los datos cifrados.
      */
     private void insertUserInDb(FirebaseUser user, String logoutCandidate) {
         DatabaseHelper dbHelper = new DatabaseHelper(this);
@@ -125,12 +126,22 @@ public class MainActivity extends AppCompatActivity {
         values.put(DatabaseHelper.COLUMN_USER_EMAIL,
                 user.getEmail() != null ? user.getEmail() : "No disponible");
 
+        // Obtener y cifrar la dirección y el teléfono del usuario
+        String encryptedAddress = KeystoreManager.encrypt(user.getDisplayName());  // Aquí debes usar el valor de la dirección
+        String encryptedPhone = KeystoreManager.encrypt("123456789"); // Aquí debes usar el valor del teléfono
+
+        values.put(DatabaseHelper.COLUMN_USER_ADDRESS, encryptedAddress);
+        values.put(DatabaseHelper.COLUMN_USER_PHONE, encryptedPhone);
+
         String currentTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
         values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGIN, currentTime);
         values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGOUT,
                 logoutCandidate != null ? logoutCandidate : "");
 
         db.insertWithOnConflict(DatabaseHelper.TABLE_USERS, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+
+        // Sincronizar los datos cifrados con Firestore
+        new UsersSync(this).syncUser(user.getUid(), user.getDisplayName(), user.getEmail(), encryptedAddress, encryptedPhone);
     }
 
     /**
@@ -214,14 +225,13 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
     }
-
     private void logout() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUserId != null && user != null) {
             // Sincronizamos los datos fijos reales para asegurarnos de que el documento se crea/actualiza
             String displayName = user.getDisplayName() != null ? user.getDisplayName() : "Usuario";
             String email = user.getEmail() != null ? user.getEmail() : "No disponible";
-            new UsersSync(this).syncUser(currentUserId, displayName, email);
+            new UsersSync(this).syncUser(currentUserId, displayName, email, "", "");
 
             // Actualizamos la BD local y registramos el logout remoto
             updateUserLogoutInDb(currentUserId);

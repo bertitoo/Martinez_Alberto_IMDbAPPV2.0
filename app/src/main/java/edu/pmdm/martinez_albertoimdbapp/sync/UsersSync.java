@@ -12,6 +12,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import edu.pmdm.martinez_albertoimdbapp.utils.KeystoreManager;
+
 public class UsersSync {
 
     private static final String TAG = "UsersSync";
@@ -29,13 +31,15 @@ public class UsersSync {
     }
 
     /**
-     * Sincroniza los datos fijos del usuario en Firestore.
+     * Sincroniza los datos fijos del usuario en Firestore, incluidos los datos cifrados de dirección y teléfono.
      */
-    public void syncUser(String uid, String name, String email) {
+    public void syncUser(String uid, String name, String email, String encryptedAddress, String encryptedPhone) {
         Map<String, Object> fixedData = new HashMap<>();
         fixedData.put("name", name);
         fixedData.put("uid", uid);
         fixedData.put("email", email);
+        fixedData.put("address", encryptedAddress);   // Guardar la dirección cifrada
+        fixedData.put("phone", encryptedPhone);       // Guardar el teléfono cifrado
 
         firestore.collection("users")
                 .document(uid)
@@ -51,8 +55,8 @@ public class UsersSync {
     /**
      * Registra un evento de login para el usuario.
      */
-    public void startSession(String uid, String name, String email) {
-        syncUser(uid, name, email);
+    public void startSession(String uid, String name, String email, String encryptedAddress, String encryptedPhone) {
+        syncUser(uid, name, email, encryptedAddress, encryptedPhone);
 
         firestore.collection("users").document(uid).get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -128,9 +132,9 @@ public class UsersSync {
     /**
      * Sincroniza la BD local a Firestore registrando el evento indicado.
      */
-    public void syncLocalToRemote(String uid, String eventType, String name, String email) {
+    public void syncLocalToRemote(String uid, String eventType, String name, String email, String encryptedAddress, String encryptedPhone) {
         if ("login".equalsIgnoreCase(eventType)) {
-            startSession(uid, name, email);
+            startSession(uid, name, email, encryptedAddress, encryptedPhone);
         } else if ("logout".equalsIgnoreCase(eventType)) {
             endSession(uid);
         } else {

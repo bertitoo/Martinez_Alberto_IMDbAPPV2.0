@@ -15,7 +15,7 @@ import com.google.firebase.auth.FirebaseUser;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import edu.pmdm.martinez_albertoimdbapp.database.FavoritesDatabaseHelper;
+import edu.pmdm.martinez_albertoimdbapp.database.DatabaseHelper;
 import edu.pmdm.martinez_albertoimdbapp.sync.UsersSync;
 
 public class AppLifecycleManager implements Application.ActivityLifecycleCallbacks, ComponentCallbacks2 {
@@ -55,15 +55,15 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
 
     // Actualiza el último login en la BD local (para fines de registro interno)
     private void updateLoginLocal(String uid) {
-        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(appContext);
+        DatabaseHelper dbHelper = new DatabaseHelper(appContext);
         try {
             android.content.ContentValues values = new android.content.ContentValues();
             String currentTime = getCurrentTime();
-            values.put(FavoritesDatabaseHelper.COLUMN_USER_ULTIMO_LOGIN, currentTime);
+            values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGIN, currentTime);
             int rows = dbHelper.getWritableDatabase().update(
-                    FavoritesDatabaseHelper.TABLE_USERS,
+                    DatabaseHelper.TABLE_USERS,
                     values,
-                    FavoritesDatabaseHelper.COLUMN_USER_UID + "=?",
+                    DatabaseHelper.COLUMN_USER_UID + "=?",
                     new String[]{uid});
             Log.d(TAG, "Último login actualizado para uid " + uid + ": " + currentTime + " (" + rows + " filas afectadas)");
         } catch (Exception e) {
@@ -73,14 +73,14 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
 
     // Actualiza el último logout en la BD local
     private void updateLogoutLocal(String logoutTime, String uid) {
-        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(appContext);
+        DatabaseHelper dbHelper = new DatabaseHelper(appContext);
         try {
             android.content.ContentValues values = new android.content.ContentValues();
-            values.put(FavoritesDatabaseHelper.COLUMN_USER_ULTIMO_LOGOUT, logoutTime);
+            values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGOUT, logoutTime);
             int rows = dbHelper.getWritableDatabase().update(
-                    FavoritesDatabaseHelper.TABLE_USERS,
+                    DatabaseHelper.TABLE_USERS,
                     values,
-                    FavoritesDatabaseHelper.COLUMN_USER_UID + "=?",
+                    DatabaseHelper.COLUMN_USER_UID + "=?",
                     new String[]{uid});
             Log.d(TAG, "Último logout actualizado para uid " + uid + ": " + logoutTime + " (" + rows + " filas afectadas)");
         } catch (Exception e) {

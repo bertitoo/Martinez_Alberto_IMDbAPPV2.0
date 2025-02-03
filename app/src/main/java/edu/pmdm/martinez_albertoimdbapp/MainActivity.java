@@ -10,8 +10,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.text.format.DateFormat;
-import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
@@ -46,7 +44,7 @@ import java.util.Date;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import edu.pmdm.martinez_albertoimdbapp.database.FavoritesDatabaseHelper;
+import edu.pmdm.martinez_albertoimdbapp.database.DatabaseHelper;
 import edu.pmdm.martinez_albertoimdbapp.databinding.ActivityMainBinding;
 import edu.pmdm.martinez_albertoimdbapp.sync.SyncFavorites;
 import edu.pmdm.martinez_albertoimdbapp.sync.UsersSync;
@@ -110,39 +108,54 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Inserta o actualiza el usuario en la BD local.
-     * Si hay un logout pendiente (logoutCandidate no es null), se usa ese valor; de lo contrario, se deja vacío.
      */
     private void insertUserInDb(FirebaseUser user, String logoutCandidate) {
-        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+        DatabaseHelper dbHelper = new DatabaseHelper(this);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(FavoritesDatabaseHelper.COLUMN_USER_UID, user.getUid());
-        values.put(FavoritesDatabaseHelper.COLUMN_USER_NAME,
+        values.put(DatabaseHelper.COLUMN_USER_UID, user.getUid());
+        values.put(DatabaseHelper.COLUMN_USER_NAME,
                 user.getDisplayName() != null ? user.getDisplayName() : "Usuario");
-        values.put(FavoritesDatabaseHelper.COLUMN_USER_EMAIL,
+        values.put(DatabaseHelper.COLUMN_USER_EMAIL,
                 user.getEmail() != null ? user.getEmail() : "No disponible");
 
         String currentTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-        values.put(FavoritesDatabaseHelper.COLUMN_USER_ULTIMO_LOGIN, currentTime);
-        values.put(FavoritesDatabaseHelper.COLUMN_USER_ULTIMO_LOGOUT,
+        values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGIN, currentTime);
+        values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGOUT,
                 logoutCandidate != null ? logoutCandidate : "");
 
-        db.insertWithOnConflict(FavoritesDatabaseHelper.TABLE_USERS, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+        db.insertWithOnConflict(DatabaseHelper.TABLE_USERS, null, values, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
+    /**
+     * Configura la información del usuario en el header.
+     * Si el usuario se autenticó mediante correo (proveedor "password"),
+     * se mostrará únicamente el e-mail y se asigna una imagen genérica.
+     * De lo contrario, se utiliza la lógica existente para Facebook y Google.
+     */
     private void setUserInfo(FirebaseUser user, TextView userName, TextView userEmail, ImageView userProfilePic) {
+        boolean isEmailLogin = false;
         boolean hasFacebook = false;
         boolean hasGoogle = false;
         for (UserInfo info : user.getProviderData()) {
-            if ("facebook.com".equals(info.getProviderId())) {
+            String provider = info.getProviderId();
+            if ("password".equals(provider)) {
+                isEmailLogin = true;
+            } else if ("facebook.com".equals(provider)) {
                 hasFacebook = true;
-            } else if ("google.com".equals(info.getProviderId())) {
+            } else if ("google.com".equals(provider)) {
                 hasGoogle = true;
             }
         }
-        if (hasFacebook && AccessToken.getCurrentAccessToken() != null && !AccessToken.getCurrentAccessToken().isExpired()) {
+        if (isEmailLogin) {
+            // Usuario autenticado mediante correo: mostrar solo e-mail y una imagen genérica.
+            userName.setText("");
+            userEmail.setText(user.getEmail() != null ? user.getEmail() : "No disponible");
+            userProfilePic.setImageResource(R.drawable.ic_android_black_24dp);
+        } else if (hasFacebook && AccessToken.getCurrentAccessToken() != null && !AccessToken.getCurrentAccessToken().isExpired()) {
             fetchFacebookUserInfo(userProfilePic, userName, userEmail);
         } else {
+            // En caso de Google u otro proveedor se usa la información por defecto.
             userName.setText(user.getDisplayName() != null ? user.getDisplayName() : "Usuario");
             userEmail.setText(user.getEmail() != null ? user.getEmail() : "No disponible");
             if (user.getPhotoUrl() != null) {
@@ -219,18 +232,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateUserLogoutInDb(String uid) {
-        FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
+        DatabaseHelper dbHelper = new DatabaseHelper(this);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         String currentTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-        values.put(FavoritesDatabaseHelper.COLUMN_USER_ULTIMO_LOGOUT, currentTime);
-        db.update(FavoritesDatabaseHelper.TABLE_USERS, values,
-                FavoritesDatabaseHelper.COLUMN_USER_UID + "=?", new String[]{uid});
+        values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGOUT, currentTime);
+        db.update(DatabaseHelper.TABLE_USERS, values,
+                DatabaseHelper.COLUMN_USER_UID + "=?", new String[]{uid});
     }
 
-    // Se elimina la llamada directa al registro de logout en onDestroy, ya que se gestiona en el AppLifecycleManager.
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         super.onDestroy();
     }
 

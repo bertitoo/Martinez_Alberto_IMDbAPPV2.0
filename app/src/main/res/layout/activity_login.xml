@@ -8,46 +8,83 @@
     android:layout_height="match_parent"
     tools:context=".LoginActivity">
 
+  <!-- Logo de la app -->
   <ImageView
       android:id="@+id/app_logo"
       android:layout_width="180dp"
       android:layout_height="176dp"
-      android:layout_marginBottom="16dp"
+      android:layout_marginTop="100dp"
       android:src="@mipmap/ic_launcher"
-      app:layout_constraintBottom_toTopOf="@id/sign_in_button"
       app:layout_constraintEnd_toEndOf="parent"
       app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toTopOf="parent"
-      app:layout_constraintVertical_chainStyle="packed" />
+      app:layout_constraintTop_toTopOf="parent" />
 
+  <!-- Campo de correo electrónico -->
+  <EditText
+      android:id="@+id/et_email"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:hint="Correo electrónico"
+      android:inputType="textEmailAddress"
+      app:layout_constraintTop_toBottomOf="@id/app_logo"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      android:layout_margin="16dp"/>
 
+  <!-- Campo de contraseña -->
+  <EditText
+      android:id="@+id/et_password"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:hint="Contraseña"
+      android:inputType="textPassword"
+      app:layout_constraintTop_toBottomOf="@id/et_email"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      android:layout_marginHorizontal="16dp"
+      android:layout_marginTop="8dp"/>
+
+  <!-- Botón para registrarse (crear cuenta nueva) -->
+  <Button
+      android:id="@+id/btn_register"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:text="Registrarse"
+      app:layout_constraintTop_toBottomOf="@id/et_password"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      android:layout_margin="16dp"/>
+
+  <!-- Botón para iniciar sesión (login con cuenta existente) -->
+  <Button
+      android:id="@+id/btn_login"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:text="Iniciar sesión"
+      app:layout_constraintTop_toBottomOf="@id/btn_register"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      android:layout_marginHorizontal="16dp"
+      android:layout_marginTop="8dp"/>
+
+  <!-- Botón de inicio de sesión con Google -->
   <com.google.android.gms.common.SignInButton
       android:id="@+id/sign_in_button"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:layout_marginStart="142dp"
-      android:layout_marginTop="9dp"
-      android:layout_marginEnd="142dp"
-      app:layout_constraintBottom_toBottomOf="parent"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.0"
+      app:layout_constraintTop_toBottomOf="@id/btn_login"
       app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toBottomOf="@id/app_logo" />
+      app:layout_constraintEnd_toEndOf="parent"
+      android:layout_marginTop="16dp" />
 
+  <!-- Botón de inicio de sesión con Facebook -->
   <com.facebook.login.widget.LoginButton
       android:id="@+id/fb_button"
       android:layout_width="wrap_content"
       android:layout_height="40dp"
-      android:layout_gravity="center_horizontal"
-      android:layout_marginStart="108dp"
-      android:layout_marginTop="14dp"
-      android:layout_marginEnd="109dp"
-      android:layout_marginBottom="226dp"
-      app:layout_constraintBottom_toBottomOf="parent"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.0"
-      app:layout_constraintStart_toStartOf="parent"
       app:layout_constraintTop_toBottomOf="@id/sign_in_button"
-      app:layout_constraintVertical_bias="0.309" />
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      android:layout_marginTop="8dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

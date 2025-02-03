@@ -14,11 +14,27 @@
       },
       "oauth_client": [
         {
+          "client_id": "305634696713-5t34r5u7up3br3ed4d1fga2ptgll9nc9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "edu.pmdm.martinez_albertoimdbapp",
+            "certificate_hash": "08f627615b97894ff7a420ff05655d456e2ed4ba"
+          }
+        },
+        {
           "client_id": "305634696713-jaqri6gm527qkb8fqf6tnjkm3pmmmo29.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "edu.pmdm.martinez_albertoimdbapp",
             "certificate_hash": "fef1450d765df2cf93288011f1fa298bf7050cb7"
+          }
+        },
+        {
+          "client_id": "305634696713-ori7usvhkga9me5l65ke27lf3ri9bnni.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "edu.pmdm.martinez_albertoimdbapp",
+            "certificate_hash": "e632c53f8801841e1a5ae43abb536c8afe7bd474"
           }
         },
         {

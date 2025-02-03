@@ -66,8 +66,6 @@ public class FavoritesDatabaseHelper extends SQLiteOpenHelper {
      */
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("PRAGMA synchronous = OFF;");
-        db.execSQL("PRAGMA journal_mode = MEMORY;");
         db.execSQL(CREATE_TABLE_FAVORITES);
         db.execSQL(CREATE_TABLE_USERS);
     }

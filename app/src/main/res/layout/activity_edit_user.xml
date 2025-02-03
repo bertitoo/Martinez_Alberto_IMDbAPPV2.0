@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -12,12 +13,12 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
+        <!-- EditText para el nombre -->
         <EditText
             android:id="@+id/editTextTextName"
-            android:layout_width="346dp"
-            android:layout_height="43dp"
-            android:layout_marginTop="65dp"
-            android:ems="10"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="45dp"
             android:hint="Name"
             android:inputType="text"
             android:maxLength="100"
@@ -26,102 +27,109 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <!-- EditText para el email -->
         <EditText
             android:id="@+id/editTextTextEmail"
-            android:layout_width="348dp"
-            android:layout_height="45dp"
-            android:layout_marginTop="24dp"
-            android:ems="10"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:hint="Email"
-            android:inputType="text"
+            android:inputType="textEmailAddress"
             android:maxLength="100"
             android:textAlignment="center"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/editTextTextName"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/editTextTextName" />
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="24dp"/>
 
+        <!-- EditText para la dirección (solo lectura) -->
         <EditText
             android:id="@+id/editTextTextAddress"
-            android:layout_width="353dp"
-            android:layout_height="42dp"
-            android:layout_marginTop="24dp"
-            android:ems="10"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:hint="Address"
             android:inputType="text"
             android:maxLength="100"
             android:textAlignment="center"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:enabled="false"
+            app:layout_constraintTop_toBottomOf="@id/editTextTextEmail"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/editTextTextEmail" />
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="24dp"/>
 
+        <!-- Botón para seleccionar dirección -->
         <Button
             android:id="@+id/buttonSelectDirection"
-            android:layout_width="295dp"
-            android:layout_height="44dp"
-            android:layout_marginTop="20dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:text="SELECT DIRECTION"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/editTextTextAddress"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/editTextTextAddress" />
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="20dp"/>
 
+        <!-- CountryCodePicker (librería externa) -->
         <com.hbb20.CountryCodePicker
             android:id="@+id/countryCodePicker"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
             app:ccp_showArrow="true"
             app:ccp_showFlag="true"
             app:ccp_showFullName="false"
             app:ccp_showNameCode="false"
             app:ccp_showPhoneCode="true"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/buttonSelectDirection"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/buttonSelectDirection" />
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="16dp"/>
 
+        <!-- EditText para el teléfono -->
         <EditText
             android:id="@+id/editTextNumberPhone"
-            android:layout_width="342dp"
-            android:layout_height="43dp"
-            android:layout_marginTop="28dp"
-            android:ems="10"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:hint="Phone"
             android:inputType="number"
             android:maxLength="20"
             android:textAlignment="center"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/countryCodePicker"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/countryCodePicker" />
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="28dp"/>
 
+        <!-- ImageView para la imagen del usuario -->
         <ImageView
             android:id="@+id/imageView"
             android:layout_width="150dp"
             android:layout_height="150dp"
             android:layout_marginTop="16dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
+            android:contentDescription="Imagen del usuario"
             app:layout_constraintTop_toBottomOf="@id/editTextNumberPhone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:srcCompat="@drawable/com_facebook_profile_picture_blank_square" />
 
+        <!-- Botón para seleccionar imagen -->
         <Button
             android:id="@+id/buttonSelectImage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
             android:text="SELECT IMAGE"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/imageView"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/imageView" />
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="16dp"/>
 
+        <!-- Botón para guardar -->
         <Button
             android:id="@+id/buttonSave"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
             android:text="SAVE"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/buttonSelectImage"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginTop="16dp"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

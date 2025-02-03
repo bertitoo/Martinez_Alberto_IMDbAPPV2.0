@@ -40,6 +40,8 @@ android {
 }
 
 dependencies {
+    implementation ("com.google.android.libraries.places:places:3.1.0")
+    implementation ("com.google.android.gms:play-services-maps:18.1.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.facebook.android:facebook-login:15.0.1")
     implementation("com.facebook.android:facebook-android-sdk:15.1.0")
@@ -67,6 +69,9 @@ dependencies {
     implementation(libs.gridlayout)
     implementation(libs.firebase.firestore)
     implementation(libs.country.code.picker)
+    implementation(libs.play.services.maps)
+    implementation(libs.places)
+    implementation(libs.libphonenumber)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

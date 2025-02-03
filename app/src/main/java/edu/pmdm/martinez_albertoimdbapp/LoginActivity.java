@@ -88,11 +88,6 @@ public class LoginActivity extends AppCompatActivity {
                     }
                 });
 
-        GoogleSignInOptions gLinkOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.default_web_client_id))
-                .requestEmail()
-                .build();
-
         activityResultLauncherGoogleLinking = registerForActivityResult
                 (new ActivityResultContracts.StartActivityForResult(),
                         new ActivityResultCallback<ActivityResult>() {
@@ -221,8 +216,8 @@ public class LoginActivity extends AppCompatActivity {
 
     private void mostrarDialogoVinculacion(String email, AuthCredential credential) {
         new AlertDialog.Builder(this)
-                .setTitle("Cuenta ya existente")
-                .setMessage("Ya existe una cuenta con el correo electrónico " + email + ". ¿Deseas vincular tu cuenta de Facebook con tu cuenta de Google?")
+                .setTitle("Colisión de cuentas")
+                .setMessage("El correo " + email + " ya está vinculado a una cuenta de Google. ¿Quieres vincular ambas cuentas a este correo?")
                 .setPositiveButton("Sí", (dialog, which) -> {
                     // Almacenar la credencial de Facebook para vinculación posterior
                     facebookCredential = credential;

@@ -50,7 +50,6 @@ import edu.pmdm.martinez_albertoimdbapp.database.FavoritesDatabaseHelper;
 import edu.pmdm.martinez_albertoimdbapp.databinding.ActivityMainBinding;
 import edu.pmdm.martinez_albertoimdbapp.sync.SyncFavorites;
 import edu.pmdm.martinez_albertoimdbapp.sync.UsersSync;
-import edu.pmdm.martinez_albertoimdbapp.utils.AppLifecycleManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -61,10 +60,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Registrar el AppLifecycleManager para gestionar eventos de login/logout
-        AppLifecycleManager appLifecycleManager = new AppLifecycleManager(this);
-        getApplication().registerActivityLifecycleCallbacks(appLifecycleManager);
-        getApplication().registerComponentCallbacks(appLifecycleManager);
+        // Se asume que el AppLifecycleManager ya se registró en AuxiliarCicloDeVida
 
         ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -78,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         ImageView userProfilePic = headerView.findViewById(R.id.imageView);
         Button logoutButton = headerView.findViewById(R.id.logout_button);
 
-        // Obtener el usuario autenticado
+        // Obtener el usuario autenticado y registrar/actualizar en la BD local.
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             currentUserId = user.getUid();
@@ -86,14 +82,7 @@ public class MainActivity extends AppCompatActivity {
             String logoutCandidate = prefs.getString(KEY_LOGOUT_CANDIDATE, null);
             insertUserInDb(user, logoutCandidate);
             setUserInfo(user, userName, userEmail, userProfilePic);
-            // Sincronizar datos fijos y registrar el login (se crea activity_log con login_time)
-            UsersSync usersSync = new UsersSync(this);
-            usersSync.syncUser(
-                    currentUserId,
-                    user.getDisplayName() != null ? user.getDisplayName() : "Usuario",
-                    user.getEmail() != null ? user.getEmail() : "No disponible"
-            );
-            usersSync.syncLocalToRemote(currentUserId, "login");
+            // NOTA: El registro de login en Firestore se realiza desde AppLifecycleManager (en onActivityResumed)
         }
 
         mGoogleSignInClient = GoogleSignIn.getClient(this,
@@ -120,8 +109,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Inserta o actualiza el usuario en la base de datos local.
-     * Si hay un logout pendiente (logoutCandidate no es null), se utiliza ese valor.
+     * Inserta o actualiza el usuario en la BD local.
+     * Si hay un logout pendiente (logoutCandidate no es null), se usa ese valor; de lo contrario, se deja vacío.
      */
     private void insertUserInDb(FirebaseUser user, String logoutCandidate) {
         FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(this);
@@ -153,12 +142,6 @@ public class MainActivity extends AppCompatActivity {
         }
         if (hasFacebook && AccessToken.getCurrentAccessToken() != null && !AccessToken.getCurrentAccessToken().isExpired()) {
             fetchFacebookUserInfo(userProfilePic, userName, userEmail);
-        } else if (hasGoogle) {
-            userName.setText(user.getDisplayName() != null ? user.getDisplayName() : "Usuario");
-            userEmail.setText(user.getEmail() != null ? user.getEmail() : "No disponible");
-            if (user.getPhotoUrl() != null) {
-                Picasso.get().load(user.getPhotoUrl()).into(userProfilePic);
-            }
         } else {
             userName.setText(user.getDisplayName() != null ? user.getDisplayName() : "Usuario");
             userEmail.setText(user.getEmail() != null ? user.getEmail() : "No disponible");
@@ -209,13 +192,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void logout() {
-        if (currentUserId != null) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUserId != null && user != null) {
+            // Sincronizamos los datos fijos reales para asegurarnos de que el documento se crea/actualiza
+            String displayName = user.getDisplayName() != null ? user.getDisplayName() : "Usuario";
+            String email = user.getEmail() != null ? user.getEmail() : "No disponible";
+            new UsersSync(this).syncUser(currentUserId, displayName, email);
+
+            // Actualizamos la BD local y registramos el logout remoto
             updateUserLogoutInDb(currentUserId);
-            // Registrar el logout en Firestore (actualiza el activity_log con logout_time)
             new UsersSync(this).syncLocalToRemote(currentUserId, "logout");
+
+            // Se elimina el uid activo para que el AppLifecycleManager no vuelva a registrar el logout
             SharedPreferences prefs = getApplicationContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
             prefs.edit().remove(KEY_ACTIVE_UID).remove(KEY_LOGOUT_CANDIDATE).apply();
         }
+
+        // Cerrar sesión en Firebase, Facebook y Google
         FirebaseAuth.getInstance().signOut();
         LoginManager.getInstance().logOut();
         mGoogleSignInClient.signOut().addOnCompleteListener(this, task -> {
@@ -235,13 +228,9 @@ public class MainActivity extends AppCompatActivity {
                 FavoritesDatabaseHelper.COLUMN_USER_UID + "=?", new String[]{uid});
     }
 
+    // Se elimina la llamada directa al registro de logout en onDestroy, ya que se gestiona en el AppLifecycleManager.
     @Override
     protected void onDestroy() {
-        if (isFinishing() && currentUserId != null) {
-            updateUserLogoutInDb(currentUserId);
-            new UsersSync(this).syncLocalToRemote(currentUserId, "logout");
-            Log.d("MainActivity", "onDestroy: Logout registrado para uid " + currentUserId);
-        }
         super.onDestroy();
     }
 

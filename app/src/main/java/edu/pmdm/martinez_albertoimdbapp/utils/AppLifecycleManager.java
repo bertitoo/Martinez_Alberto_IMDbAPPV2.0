@@ -17,6 +17,7 @@ import java.util.Date;
 
 import edu.pmdm.martinez_albertoimdbapp.MainActivity;
 import edu.pmdm.martinez_albertoimdbapp.database.FavoritesDatabaseHelper;
+import edu.pmdm.martinez_albertoimdbapp.sync.UsersSync;
 
 public class AppLifecycleManager implements Application.ActivityLifecycleCallbacks, ComponentCallbacks2 {
 
@@ -48,7 +49,7 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
     }
 
     /**
-     * Actualiza el "último login" en la BD para el uid indicado.
+     * Actualiza el "último login" en la BD local para el uid indicado.
      */
     private void updateLogin(String uid) {
         FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(appContext);
@@ -68,7 +69,7 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
     }
 
     /**
-     * Actualiza el "último logout" en la BD para el uid indicado usando la hora proporcionada.
+     * Actualiza el "último logout" en la BD local para el uid indicado.
      */
     private void updateLogout(String logoutTime, String uid) {
         FavoritesDatabaseHelper dbHelper = new FavoritesDatabaseHelper(appContext);
@@ -97,7 +98,7 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
     }
 
     /**
-     * Guarda en SharedPreferences el uid actual como cuenta activa.
+     * Guarda en SharedPreferences el uid actual como la cuenta activa.
      */
     private void saveActiveUid(String uid) {
         SharedPreferences prefs = appContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -117,24 +118,20 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
         activityReferences++;
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
+            new UsersSync(appContext).syncLocalToRemote(user.getUid(), "login");
             String currentUid = user.getUid();
             SharedPreferences prefs = appContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
             String activeUid = prefs.getString(KEY_ACTIVE_UID, null);
             if (activeUid == null) {
-                // Primera vez en la sesión; guardar el uid activo.
                 saveActiveUid(currentUid);
             } else if (!activeUid.equals(currentUid)) {
-                // Cambio de cuenta: si hay candidato, actualizar logout para el uid anterior.
                 String candidate = prefs.getString(KEY_LOGOUT_CANDIDATE, null);
                 if (candidate != null) {
                     updateLogout(candidate, activeUid);
                 }
-                // Guardar el nuevo uid activo.
                 saveActiveUid(currentUid);
             }
-            // Actualizar el login para el usuario actual.
             updateLogin(currentUid);
-            // Limpiar el candidato a logout al volver a primer plano.
             prefs.edit().remove(KEY_LOGOUT_CANDIDATE).apply();
         }
         Log.d(TAG, "App en primer plano (onActivityStarted).");
@@ -155,14 +152,14 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
         isActivityChangingConfigurations = activity.isChangingConfigurations();
         activityReferences--;
         if (activityReferences == 0 && !isActivityChangingConfigurations) {
-            // La app pasó a background: actualizar el logout para el uid activo.
             SharedPreferences prefs = appContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
             String activeUid = prefs.getString(KEY_ACTIVE_UID, null);
             if (activeUid != null) {
                 String currentTime = getCurrentTime();
                 updateLogout(currentTime, activeUid);
+                // Sincronizar el logout al pasar a background
+                new UsersSync(appContext).syncLocalToRemote(activeUid, "logout");
             }
-            // Guardar candidato a logout.
             saveLogoutCandidate();
             Log.d(TAG, "App en background (onActivityStopped).");
         }
@@ -176,7 +173,6 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
     @Override
     public void onActivityDestroyed(Activity activity) {
         isActivityChangingConfigurations = activity.isChangingConfigurations();
-        // Si la actividad principal se destruye (por cierre o reinicio) y se está finalizando, registrar logout.
         if (activity instanceof MainActivity && activity.isFinishing()) {
             SharedPreferences prefs = appContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
             String activeUid = prefs.getString(KEY_ACTIVE_UID, null);
@@ -193,7 +189,6 @@ public class AppLifecycleManager implements Application.ActivityLifecycleCallbac
     @Override
     public void onTrimMemory(int level) {
         if (level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-            // Cuando la UI deja de ser visible, guardar candidato a logout.
             saveLogoutCandidate();
             Log.d(TAG, "UI oculta (onTrimMemory): logout candidato guardado.");
         }

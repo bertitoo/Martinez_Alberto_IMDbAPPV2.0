@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.cronet.embedded)
     implementation(libs.gridlayout)
     implementation(libs.firebase.firestore)
+    implementation(libs.country.code.picker)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

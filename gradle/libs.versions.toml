@@ -16,6 +16,7 @@ activity = "1.9.3"
 cronetEmbedded = "119.6045.31"
 gridlayout = "1.0.0"
 firebaseFirestore = "25.1.1"
+countryCodePicker = "2.5.4"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -33,6 +34,7 @@ activity = { group = "androidx.activity", name = "activity", version.ref = "acti
 cronet-embedded = { group = "org.chromium.net", name = "cronet-embedded", version.ref = "cronetEmbedded" }
 gridlayout = { group = "androidx.gridlayout", name = "gridlayout", version.ref = "gridlayout" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
+country-code-picker = { group = "com.hbb20", name = "ccp", version.ref = "countryCodePicker" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -11,6 +11,7 @@ import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -55,10 +56,14 @@ public class MainActivity extends AppCompatActivity {
     private GoogleSignInClient mGoogleSignInClient;
     private String currentUserId = null;
 
+    // Declaramos las vistas del header como variables de instancia
+    private TextView headerUserName;
+    private TextView headerUserEmail;
+    private ImageView headerUserProfilePic;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Se asume que el AppLifecycleManager ya se registró en AuxiliarCicloDeVida
 
         ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -67,9 +72,10 @@ public class MainActivity extends AppCompatActivity {
         NavigationView navigationView = binding.navView;
         View headerView = navigationView.getHeaderView(0);
 
-        TextView userName = headerView.findViewById(R.id.textView);
-        TextView userEmail = headerView.findViewById(R.id.user_email);
-        ImageView userProfilePic = headerView.findViewById(R.id.imageView);
+        // Asignamos las vistas del header a las variables de instancia
+        headerUserName = headerView.findViewById(R.id.textView);
+        headerUserEmail = headerView.findViewById(R.id.user_email);
+        headerUserProfilePic = headerView.findViewById(R.id.imageView);
         Button logoutButton = headerView.findViewById(R.id.logout_button);
 
         // Obtener el usuario autenticado y registrar/actualizar en la BD local.
@@ -79,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
             SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
             String logoutCandidate = prefs.getString(KEY_LOGOUT_CANDIDATE, null);
             insertUserInDb(user, logoutCandidate);
-            setUserInfo(user, userName, userEmail, userProfilePic);
+            setUserInfo(user, headerUserName, headerUserEmail, headerUserProfilePic);
             // NOTA: El registro de login en Firestore se realiza desde AppLifecycleManager (en onActivityResumed)
         }
 
@@ -159,7 +165,10 @@ public class MainActivity extends AppCompatActivity {
             userName.setText(user.getDisplayName() != null ? user.getDisplayName() : "Usuario");
             userEmail.setText(user.getEmail() != null ? user.getEmail() : "No disponible");
             if (user.getPhotoUrl() != null) {
-                Picasso.get().load(user.getPhotoUrl()).into(userProfilePic);
+                String photoUrl = user.getPhotoUrl().toString();
+                // Guardamos la URL en el tag del ImageView para usarla luego en EditUserActivity
+                userProfilePic.setTag(photoUrl);
+                Picasso.get().load(photoUrl).into(userProfilePic);
             }
         }
     }
@@ -195,6 +204,8 @@ public class MainActivity extends AppCompatActivity {
                     userName.setText(fbName);
                     userEmail.setText("Conectado con Facebook");
                     if (fbPhotoUrl != null) {
+                        // Guardamos la URL en el tag del ImageView para usarla luego en EditUserActivity
+                        userProfilePic.setTag(fbPhotoUrl);
                         Picasso.get().load(fbPhotoUrl).into(userProfilePic);
                     }
                 });
@@ -256,5 +267,29 @@ public class MainActivity extends AppCompatActivity {
     public boolean onSupportNavigateUp() {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         return NavigationUI.navigateUp(navController, mAppBarConfiguration) || super.onSupportNavigateUp();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_edit_user) {
+            // Se crea el intent para iniciar EditUserActivity y se envían los datos del usuario
+            Intent intent = new Intent(this, EditUserActivity.class);
+
+            String name = headerUserName.getText().toString();
+            String email = headerUserEmail.getText().toString();
+            String photoUrl = "";
+            if (headerUserProfilePic.getTag() != null) {
+                photoUrl = headerUserProfilePic.getTag().toString();
+            }
+
+            intent.putExtra("user_name", name);
+            intent.putExtra("user_email", email);
+            intent.putExtra("user_photo_url", photoUrl);
+
+            startActivity(intent);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

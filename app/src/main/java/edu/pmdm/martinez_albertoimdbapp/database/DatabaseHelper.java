@@ -102,12 +102,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    public void deleteUsersByEmail(String email) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        // Eliminamos todos los usuarios con el correo especificado
-        db.delete(TABLE_USERS, COLUMN_USER_EMAIL + " = ?", new String[]{email});
-    }
-
     /**
      * Comprueba si una columna existe en una tabla específica.
      *
@@ -165,26 +159,5 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             return encryptedPhone;
         }
         return null;
-    }
-
-    /**
-     * Guarda los datos cifrados del usuario (dirección y teléfono).
-     *
-     * @param uid               El UID del usuario.
-     * @param encryptedAddress  La dirección cifrada.
-     * @param encryptedPhone    El número de teléfono cifrado.
-     */
-    public void saveEncryptedUserData(String uid, String encryptedAddress, String encryptedPhone, String photoUrl) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_USER_ADDRESS, encryptedAddress);
-        values.put(COLUMN_USER_PHONE, encryptedPhone);
-        values.put(COLUMN_USER_IMAGE_URL, photoUrl);
-
-        db.update(TABLE_USERS, values, COLUMN_USER_UID + "=?", new String[]{uid});
-    }
-
-    public SQLiteDatabase getDatabase(boolean writable) {
-        return writable ? getWritableDatabase() : getReadableDatabase();
     }
 }

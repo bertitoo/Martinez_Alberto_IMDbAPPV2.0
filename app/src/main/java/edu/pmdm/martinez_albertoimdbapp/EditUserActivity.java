@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.net.URL;
 
 import edu.pmdm.martinez_albertoimdbapp.database.DatabaseHelper;
+import edu.pmdm.martinez_albertoimdbapp.sync.UsersSync;
 import edu.pmdm.martinez_albertoimdbapp.utils.KeystoreManager;
 
 public class EditUserActivity extends AppCompatActivity {
@@ -275,7 +276,7 @@ public class EditUserActivity extends AppCompatActivity {
      */
     private void saveData() {
         // Recoger los datos del usuario
-        String name = editTextName.getText().toString();
+        String name = editTextName.getText().toString().trim(); // Eliminar espacios en blanco
         String email = ((EditText) findViewById(R.id.editTextTextEmail)).getText().toString();
         String address = editTextAddress.getText().toString();
         String phoneNumber = editTextNumberPhone.getText().toString();
@@ -297,8 +298,9 @@ public class EditUserActivity extends AppCompatActivity {
             Toast.makeText(this, "No hay usuario autenticado", Toast.LENGTH_SHORT).show();
             return;
         }
-
         String userUid = user.getUid();
+
+        // Construir el número completo con el prefijo del país
         String countryCode = countryCodePicker.getSelectedCountryCodeWithPlus();
         String fullPhoneNumber = countryCode + phoneNumber;
 
@@ -306,8 +308,11 @@ public class EditUserActivity extends AppCompatActivity {
         String encryptedAddress = KeystoreManager.encrypt(address);
         String encryptedPhone = KeystoreManager.encrypt(fullPhoneNumber);
 
-        // Guardar los datos en la base de datos
+        // Guardar los datos en la base de datos local
         saveUserDataToDatabase(userUid, name, email, encryptedAddress, encryptedPhone, currentImageBase64);
+
+        // Sincronizar los datos con Firestore
+        syncUserDataToFirestore(userUid, name, email, encryptedAddress, encryptedPhone);
 
         // Mostrar un mensaje de éxito
         Toast.makeText(this, "Datos guardados correctamente", Toast.LENGTH_SHORT).show();
@@ -316,6 +321,22 @@ public class EditUserActivity extends AppCompatActivity {
         Intent intent = new Intent(EditUserActivity.this, MainActivity.class);
         startActivity(intent);
         finish();
+    }
+
+    private void syncUserDataToFirestore(String uid, String name, String email, String encryptedAddress, String encryptedPhone) {
+        UsersSync usersSync = new UsersSync(this);
+
+        // Verificar que el nombre no esté vacío antes de sincronizar
+        if (name == null || name.isEmpty()) {
+            Log.e("SYNC_ERROR", "El nombre no puede estar vacío");
+            return;
+        }
+
+        // Sincronizar los datos fijos del usuario en Firestore
+        usersSync.syncUser(uid, name, email, encryptedAddress, encryptedPhone);
+
+        // Registrar un evento de login (opcional)
+        usersSync.startSession(uid, name, email, encryptedAddress, encryptedPhone);
     }
 
     private void saveUserDataToDatabase(String userUid, String name, String email, String encryptedAddress,

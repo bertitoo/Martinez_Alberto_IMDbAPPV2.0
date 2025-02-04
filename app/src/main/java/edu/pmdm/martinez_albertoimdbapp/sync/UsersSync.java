@@ -34,22 +34,33 @@ public class UsersSync {
      * Sincroniza los datos fijos del usuario en Firestore, incluidos los datos cifrados de dirección y teléfono.
      */
     public void syncUser(String uid, String name, String email, String encryptedAddress, String encryptedPhone) {
+        // Validar que el nombre no esté vacío
+        if (name == null || name.isEmpty()) {
+            Log.e(TAG, "El nombre no puede estar vacío");
+            return;
+        }
+
+        // Crear el mapa de datos fijos
         Map<String, Object> fixedData = new HashMap<>();
         fixedData.put("uid", uid);
         fixedData.put("name", name);
         fixedData.put("email", email);
-        fixedData.put("address", encryptedAddress);   // Guardar la dirección cifrada
-        fixedData.put("phone", encryptedPhone);       // Guardar el teléfono cifrado
+        fixedData.put("address", encryptedAddress); // Guardar la dirección cifrada
+        fixedData.put("phone", encryptedPhone);     // Guardar el teléfono cifrado
 
+        // Enviar los datos a Firestore
         firestore.collection("users")
                 .document(uid)
                 .set(new HashMap<String, Object>() {{
                     put("activity_log", fixedData);
                 }}, SetOptions.merge())
-                .addOnSuccessListener(aVoid ->
-                        Log.d(TAG, "Datos fijos sincronizados para uid " + uid))
-                .addOnFailureListener(e ->
-                        Log.e(TAG, "Error sincronizando datos fijos para uid " + uid, e));
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Datos fijos sincronizados para uid " + uid);
+                    Log.d(TAG, "Datos enviados: " + fixedData.toString());
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error sincronizando datos fijos para uid " + uid, e);
+                });
     }
 
     /**

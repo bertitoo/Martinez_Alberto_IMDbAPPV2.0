@@ -422,6 +422,8 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
         boolean isEmailLogin = false;
         boolean hasFacebook = false;
         boolean hasGoogle = false;
+
+        // Identificar el proveedor de autenticación
         for (UserInfo info : user.getProviderData()) {
             String provider = info.getProviderId();
             if ("password".equals(provider)) {
@@ -432,22 +434,83 @@ public class MainActivity extends AppCompatActivity implements Application.Activ
                 hasGoogle = true;
             }
         }
-        if (isEmailLogin) {
-            // Usuario autenticado mediante correo: mostrar solo e-mail y una imagen genérica.
-            userName.setText("");
-            userEmail.setText(user.getEmail() != null ? user.getEmail() : "No disponible");
-            userProfilePic.setImageResource(R.drawable.ic_android_black_24dp);
-        } else if (hasFacebook && AccessToken.getCurrentAccessToken() != null && !AccessToken.getCurrentAccessToken().isExpired()) {
-            fetchFacebookUserInfo(userProfilePic, userName, userEmail);
+
+        // Cargar los datos del usuario desde la base de datos local
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            return; // No hay usuario autenticado
+        }
+
+        String userUid = currentUser.getUid();
+        DatabaseHelper dbHelper = new DatabaseHelper(this);
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+
+        // Consultar la base de datos para obtener los datos editados previamente
+        String[] projection = {
+                DatabaseHelper.COLUMN_USER_NAME,
+                DatabaseHelper.COLUMN_USER_EMAIL,
+                DatabaseHelper.COLUMN_USER_IMAGE_URL
+        };
+
+        Cursor cursor = db.query(
+                DatabaseHelper.TABLE_USERS,
+                projection,
+                DatabaseHelper.COLUMN_USER_UID + " = ?",
+                new String[]{userUid},
+                null, null, null
+        );
+
+        if (cursor != null && cursor.moveToFirst()) {
+            // Obtener los valores editados previamente desde la base de datos
+            String name = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USER_NAME));
+            String email = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USER_EMAIL));
+            String photoUrl = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USER_IMAGE_URL));
+
+            // Mostrar los datos editados previamente
+            if (isEmailLogin) {
+                // Usuario autenticado mediante correo: mostrar solo e-mail y una imagen genérica.
+                userName.setText(""); // Nombre vacío
+                userEmail.setText(email != null && !email.isEmpty() ? email : "No disponible");
+                userProfilePic.setImageResource(R.drawable.ic_android_black_24dp); // Imagen genérica
+            } else if (hasFacebook) {
+                // Usuario autenticado con Facebook
+                userName.setText(name != null && !name.isEmpty() ? name : "Usuario");
+                userEmail.setText("Conectado con Facebook"); // Texto específico para Facebook
+                if (photoUrl != null && !photoUrl.isEmpty()) {
+                    Picasso.get().load(photoUrl).into(userProfilePic);
+                } else {
+                    userProfilePic.setImageResource(R.drawable.ic_android_black_24dp); // Logo de Facebook como predeterminado
+                }
+            } else if (hasGoogle) {
+                // Usuario autenticado con Google
+                userName.setText(name != null && !name.isEmpty() ? name : "Usuario");
+                userEmail.setText(email != null && !email.isEmpty() ? email : "No disponible");
+                if (photoUrl != null && !photoUrl.isEmpty()) {
+                    Picasso.get().load(photoUrl).into(userProfilePic);
+                } else {
+                    userProfilePic.setImageResource(R.drawable.ic_android_black_24dp); // Logo de Google como predeterminado
+                }
+            }
+
+            cursor.close();
         } else {
-            // En caso de Google u otro proveedor se usa la información por defecto.
-            userName.setText(user.getDisplayName() != null ? user.getDisplayName() : "Usuario");
-            userEmail.setText(user.getEmail() != null ? user.getEmail() : "No disponible");
-            if (user.getPhotoUrl() != null) {
-                String photoUrl = user.getPhotoUrl().toString();
-                // Guardamos la URL en el tag del ImageView para usarla luego en EditUserActivity
-                userProfilePic.setTag(photoUrl);
-                Picasso.get().load(photoUrl).into(userProfilePic);
+            // Si no hay datos editados previamente, usar los valores predeterminados de Firebase Auth
+            if (isEmailLogin) {
+                // Usuario autenticado mediante correo: mostrar solo e-mail y una imagen genérica.
+                userName.setText("");
+                userEmail.setText(user.getEmail() != null ? user.getEmail() : "No disponible");
+                userProfilePic.setImageResource(R.drawable.ic_android_black_24dp);
+            } else if (hasFacebook && AccessToken.getCurrentAccessToken() != null && !AccessToken.getCurrentAccessToken().isExpired()) {
+                fetchFacebookUserInfo(userProfilePic, userName, userEmail);
+            } else {
+                // En caso de Google u otro proveedor se usa la información por defecto.
+                userName.setText(user.getDisplayName() != null ? user.getDisplayName() : "Usuario");
+                userEmail.setText(user.getEmail() != null ? user.getEmail() : "No disponible");
+                if (user.getPhotoUrl() != null) {
+                    String photoUrl = user.getPhotoUrl().toString();
+                    userProfilePic.setTag(photoUrl);
+                    Picasso.get().load(photoUrl).into(userProfilePic);
+                }
             }
         }
     }

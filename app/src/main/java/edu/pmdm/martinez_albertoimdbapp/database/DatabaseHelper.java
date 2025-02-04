@@ -10,6 +10,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 /**
  * Helper para gestionar la base de datos SQLite de películas favoritas y usuarios.
  * Se encarga de crear, actualizar y gestionar la tabla de favoritos y la tabla de usuarios.
+ *
+ * @author Alberto Martínez Vadillo
  */
 public class DatabaseHelper extends SQLiteOpenHelper {
 

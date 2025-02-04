@@ -17,11 +17,23 @@ import java.util.Map;
 import edu.pmdm.martinez_albertoimdbapp.models.Movie;
 import edu.pmdm.martinez_albertoimdbapp.sync.SyncFavorites;
 
+/**
+ * Clase encargada de gestionar las películas favoritas de un usuario,
+ * tanto en la base de datos local (SQLite) como en Firestore.
+ * Permite agregar, eliminar y consultar las películas favoritas de un usuario.
+ *
+ * @author Alberto Martínez Vadillo
+ */
 public class FavoritesManager {
 
     private final DatabaseHelper dbHelper;
     private final Context context;
 
+    /**
+     * Constructor que inicializa el gestor de favoritos con el contexto de la aplicación.
+     *
+     * @param context El contexto de la aplicación.
+     */
     public FavoritesManager(Context context) {
         this.context = context;
         dbHelper = new DatabaseHelper(context);
@@ -29,6 +41,10 @@ public class FavoritesManager {
 
     /**
      * Verifica si una película ya está en los favoritos de un usuario (en SQLite).
+     *
+     * @param id El ID de la película.
+     * @param userId El ID del usuario.
+     * @return true si la película está en los favoritos, false si no.
      */
     public boolean isFavorite(String id, String userId) {
         SQLiteDatabase db = dbHelper.getReadableDatabase();
@@ -50,9 +66,13 @@ public class FavoritesManager {
     }
 
     /**
-     * Agrega una película a la lista de favoritos de un usuario en LOCAL y en FIRESTORE.
-     * Se usan únicamente los campos: id, title e imageUrl.
+     * Agrega una película a la lista de favoritos de un usuario en la base de datos local y en Firestore.
      * Al finalizar, se invoca la sincronización a través de SyncFavorites.
+     *
+     * @param id El ID de la película.
+     * @param title El título de la película.
+     * @param imageUrl La URL de la imagen del póster.
+     * @param userId El ID del usuario.
      */
     public void addFavorite(String id, String title, String imageUrl, String userId) {
         // ---------------------------
@@ -101,8 +121,11 @@ public class FavoritesManager {
     }
 
     /**
-     * Elimina una película de la lista de favoritos de un usuario en LOCAL y en FIRESTORE.
+     * Elimina una película de la lista de favoritos de un usuario en la base de datos local y en Firestore.
      * Al finalizar, se invoca la sincronización a través de SyncFavorites.
+     *
+     * @param id El ID de la película.
+     * @param userId El ID del usuario.
      */
     public void removeFavorite(String id, String userId) {
         // 1) Eliminar de la DB local
@@ -130,7 +153,10 @@ public class FavoritesManager {
     }
 
     /**
-     * Obtiene la lista de películas favoritas de un usuario desde la DB LOCAL (SQLite).
+     * Obtiene la lista de películas favoritas de un usuario desde la base de datos local (SQLite).
+     *
+     * @param userId El ID del usuario.
+     * @return Una lista de películas favoritas del usuario.
      */
     public List<Movie> getFavoritesForUser(String userId) {
         SQLiteDatabase db = dbHelper.getReadableDatabase();

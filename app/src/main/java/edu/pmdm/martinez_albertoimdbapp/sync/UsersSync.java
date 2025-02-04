@@ -14,24 +14,45 @@ import java.util.Map;
 
 import edu.pmdm.martinez_albertoimdbapp.utils.KeystoreManager;
 
+/**
+ * Clase encargada de sincronizar los datos del usuario entre la base de datos local y Firestore.
+ * Incluye el registro de eventos de login y logout, así como la sincronización de datos fijos del usuario.
+ *
+ * @author Alberto Martínez Vadillo
+ */
 public class UsersSync {
 
     private static final String TAG = "UsersSync";
     private final Context context;
     private final FirebaseFirestore firestore;
 
+    /**
+     * Constructor para inicializar el objeto UsersSync con el contexto de la aplicación.
+     *
+     * @param context El contexto de la aplicación.
+     */
     public UsersSync(Context context) {
         this.context = context.getApplicationContext();
         this.firestore = FirebaseFirestore.getInstance();
     }
 
-    // Retorna la fecha/hora actual en formato "yyyy-MM-dd HH:mm:ss"
+    /**
+     * Retorna la fecha/hora actual en formato "yyyy-MM-dd HH:mm:ss".
+     *
+     * @return La fecha/hora actual en formato "yyyy-MM-dd HH:mm:ss".
+     */
     private String getCurrentTime() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
     }
 
     /**
      * Sincroniza los datos fijos del usuario en Firestore, incluidos los datos cifrados de dirección y teléfono.
+     *
+     * @param uid El UID del usuario.
+     * @param name El nombre del usuario.
+     * @param email El correo electrónico del usuario.
+     * @param encryptedAddress La dirección cifrada del usuario.
+     * @param encryptedPhone El teléfono cifrado del usuario.
      */
     public void syncUser(String uid, String name, String email, String encryptedAddress, String encryptedPhone) {
         // Validar que el nombre no esté vacío
@@ -65,6 +86,12 @@ public class UsersSync {
 
     /**
      * Registra un evento de login para el usuario.
+     *
+     * @param uid El UID del usuario.
+     * @param name El nombre del usuario.
+     * @param email El correo electrónico del usuario.
+     * @param encryptedAddress La dirección cifrada del usuario.
+     * @param encryptedPhone El teléfono cifrado del usuario.
      */
     public void startSession(String uid, String name, String email, String encryptedAddress, String encryptedPhone) {
         syncUser(uid, name, email, encryptedAddress, encryptedPhone);
@@ -95,6 +122,8 @@ public class UsersSync {
 
     /**
      * Registra un evento de logout para el usuario.
+     *
+     * @param uid El UID del usuario.
      */
     public void endSession(String uid) {
         firestore.collection("users").document(uid).get()
@@ -141,7 +170,14 @@ public class UsersSync {
     }
 
     /**
-     * Sincroniza la BD local a Firestore registrando el evento indicado.
+     * Sincroniza la base de datos local a Firestore registrando el evento indicado.
+     *
+     * @param uid El UID del usuario.
+     * @param eventType El tipo de evento ("login" o "logout").
+     * @param name El nombre del usuario.
+     * @param email El correo electrónico del usuario.
+     * @param encryptedAddress La dirección cifrada del usuario.
+     * @param encryptedPhone El teléfono cifrado del usuario.
      */
     public void syncLocalToRemote(String uid, String eventType, String name, String email, String encryptedAddress, String encryptedPhone) {
         if ("login".equalsIgnoreCase(eventType)) {
@@ -153,7 +189,12 @@ public class UsersSync {
         }
     }
 
-    // Sobrecarga para cuando se registra solo un logout.
+    /**
+     * Sobrecarga para cuando se registra solo un evento de logout.
+     *
+     * @param uid El UID del usuario.
+     * @param eventType El tipo de evento ("logout").
+     */
     public void syncLocalToRemote(String uid, String eventType) {
         if ("logout".equalsIgnoreCase(eventType)) {
             endSession(uid);

@@ -17,12 +17,24 @@ import java.util.List;
 import edu.pmdm.martinez_albertoimdbapp.database.FavoritesManager;
 import edu.pmdm.martinez_albertoimdbapp.models.Movie;
 
+/**
+ * Clase que gestiona la sincronización de los favoritos de un usuario entre la base de datos local (SQLite)
+ * y Cloud Firestore. Permite tanto la sincronización manual como la sincronización en tiempo real.
+ *
+ * @author Alberto Martínez Vadillo
+ */
 public class SyncFavorites {
 
     private final String userId;
     private final FavoritesManager favoritesManager;
     private final FirebaseFirestore firestore;
 
+    /**
+     * Constructor para inicializar el objeto SyncFavorites con el contexto y el ID del usuario.
+     *
+     * @param context El contexto de la aplicación.
+     * @param userId El ID del usuario cuyas películas favoritas se deben sincronizar.
+     */
     public SyncFavorites(Context context, String userId) {
         this.userId = userId;
         this.favoritesManager = new FavoritesManager(context);

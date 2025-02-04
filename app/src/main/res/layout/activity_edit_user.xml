@@ -21,7 +21,7 @@
             android:layout_marginTop="45dp"
             android:hint="Name"
             android:inputType="text"
-            android:maxLength="100"
+            android:maxLength="15"
             android:textAlignment="center"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

@@ -8,8 +8,10 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -120,29 +122,60 @@ public class MainActivity extends AppCompatActivity {
         DatabaseHelper dbHelper = new DatabaseHelper(this);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(DatabaseHelper.COLUMN_USER_UID, user.getUid());
-        values.put(DatabaseHelper.COLUMN_USER_NAME,
-                user.getDisplayName() != null ? user.getDisplayName() : "Usuario");
-        values.put(DatabaseHelper.COLUMN_USER_EMAIL,
-                user.getEmail() != null ? user.getEmail() : "No disponible");
 
-        // Obtener y cifrar la dirección y el teléfono del usuario
-        String encryptedAddress = KeystoreManager.encrypt(user.getDisplayName());  // Aquí debes usar el valor de la dirección
-        String encryptedPhone = KeystoreManager.encrypt("123456789"); // Aquí debes usar el valor del teléfono
+        String userUid = user.getUid();
+        String displayName = user.getDisplayName() != null ? user.getDisplayName() : "Usuario";
+        String email = user.getEmail() != null ? user.getEmail() : "No disponible";
 
-        values.put(DatabaseHelper.COLUMN_USER_ADDRESS, encryptedAddress);
-        values.put(DatabaseHelper.COLUMN_USER_PHONE, encryptedPhone);
-
+        // Registrar la fecha y hora del último login
         String currentTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
         values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGIN, currentTime);
-        values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGOUT,
-                logoutCandidate != null ? logoutCandidate : "");
+        values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGOUT, logoutCandidate != null ? logoutCandidate : "");
 
-        db.insertWithOnConflict(DatabaseHelper.TABLE_USERS, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+        // Verificar si el usuario ya existe en la base de datos
+        Cursor cursor = db.query(
+                DatabaseHelper.TABLE_USERS,
+                new String[]{DatabaseHelper.COLUMN_USER_NAME, DatabaseHelper.COLUMN_USER_ADDRESS, DatabaseHelper.COLUMN_USER_PHONE},
+                DatabaseHelper.COLUMN_USER_UID + " = ?",
+                new String[]{userUid},
+                null, null, null
+        );
 
-        // Sincronizar los datos cifrados con Firestore
-        new UsersSync(this).syncUser(user.getUid(), user.getDisplayName(), user.getEmail(), encryptedAddress, encryptedPhone);
+        if (cursor != null && cursor.moveToFirst()) {
+            // El usuario ya existe, NO actualizar el nombre, solo recuperar los datos cifrados
+            String existingName = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USER_NAME));
+            String encryptedAddress = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USER_ADDRESS));
+            String encryptedPhone = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USER_PHONE));
+
+            // Mantener el nombre original y actualizar solo otros datos
+            values.put(DatabaseHelper.COLUMN_USER_NAME, existingName);
+            values.put(DatabaseHelper.COLUMN_USER_ADDRESS, encryptedAddress);
+            values.put(DatabaseHelper.COLUMN_USER_PHONE, encryptedPhone);
+
+            db.update(DatabaseHelper.TABLE_USERS, values, DatabaseHelper.COLUMN_USER_UID + " = ?", new String[]{userUid});
+            Log.d("DATABASE", "Usuario ya existente, NO se actualiza el nombre");
+        } else {
+            // El usuario no existe, insertar un nuevo registro con su nombre original
+            values.put(DatabaseHelper.COLUMN_USER_UID, userUid);
+            values.put(DatabaseHelper.COLUMN_USER_NAME, displayName);
+            values.put(DatabaseHelper.COLUMN_USER_EMAIL, email);
+            values.put(DatabaseHelper.COLUMN_USER_ADDRESS, ""); // Dirección vacía
+            values.put(DatabaseHelper.COLUMN_USER_PHONE, "");   // Teléfono vacío
+
+            db.insert(DatabaseHelper.TABLE_USERS, null, values);
+            Log.d("DATABASE", "Nuevo usuario insertado con nombre: " + displayName);
+        }
+
+        if (cursor != null) {
+            cursor.close();
+        }
+
+        // Sincronizar los datos con Firestore
+        String encryptedAddress = dbHelper.getUserEncryptedAddress(userUid);
+        String encryptedPhone = dbHelper.getUserEncryptedPhone(userUid);
+        new UsersSync(this).syncUser(userUid, displayName, email, encryptedAddress, encryptedPhone);
     }
+
 
     /**
      * Configura la información del usuario en el header.
@@ -285,18 +318,15 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_edit_user) {
             // Se crea el intent para iniciar EditUserActivity y se envían los datos del usuario
             Intent intent = new Intent(this, EditUserActivity.class);
-
             String name = headerUserName.getText().toString();
             String email = headerUserEmail.getText().toString();
             String photoUrl = "";
             if (headerUserProfilePic.getTag() != null) {
                 photoUrl = headerUserProfilePic.getTag().toString();
             }
-
             intent.putExtra("user_name", name);
             intent.putExtra("user_email", email);
             intent.putExtra("user_photo_url", photoUrl);
-
             startActivity(intent);
             return true;
         }

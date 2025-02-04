@@ -35,8 +35,8 @@ public class UsersSync {
      */
     public void syncUser(String uid, String name, String email, String encryptedAddress, String encryptedPhone) {
         Map<String, Object> fixedData = new HashMap<>();
-        fixedData.put("name", name);
         fixedData.put("uid", uid);
+        fixedData.put("name", name);
         fixedData.put("email", email);
         fixedData.put("address", encryptedAddress);   // Guardar la dirección cifrada
         fixedData.put("phone", encryptedPhone);       // Guardar el teléfono cifrado

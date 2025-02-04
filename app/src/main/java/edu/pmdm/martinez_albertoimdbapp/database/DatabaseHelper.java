@@ -174,11 +174,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
      * @param encryptedAddress  La dirección cifrada.
      * @param encryptedPhone    El número de teléfono cifrado.
      */
-    public void saveEncryptedUserData(String uid, String encryptedAddress, String encryptedPhone) {
+    public void saveEncryptedUserData(String uid, String encryptedAddress, String encryptedPhone, String photoUrl) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_USER_ADDRESS, encryptedAddress);
         values.put(COLUMN_USER_PHONE, encryptedPhone);
+        values.put(COLUMN_USER_IMAGE_URL, photoUrl);
+
         db.update(TABLE_USERS, values, COLUMN_USER_UID + "=?", new String[]{uid});
     }
 

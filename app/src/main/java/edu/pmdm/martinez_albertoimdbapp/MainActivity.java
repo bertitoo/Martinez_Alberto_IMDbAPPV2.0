@@ -1,9 +1,8 @@
 package edu.pmdm.martinez_albertoimdbapp;
 
-import static edu.pmdm.martinez_albertoimdbapp.utils.AppLifecycleManager.KEY_ACTIVE_UID;
-import static edu.pmdm.martinez_albertoimdbapp.utils.AppLifecycleManager.KEY_LOGOUT_CANDIDATE;
-import static edu.pmdm.martinez_albertoimdbapp.utils.AppLifecycleManager.PREF_NAME;
-
+import android.app.Activity;
+import android.app.Application;
+import android.content.ComponentCallbacks2;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -18,14 +17,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
-
 import com.facebook.AccessToken;
 import com.facebook.login.LoginManager;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -36,37 +33,66 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserInfo;
 import com.squareup.picasso.Picasso;
-
 import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
 import javax.net.ssl.HttpsURLConnection;
-
 import edu.pmdm.martinez_albertoimdbapp.database.DatabaseHelper;
 import edu.pmdm.martinez_albertoimdbapp.databinding.ActivityMainBinding;
 import edu.pmdm.martinez_albertoimdbapp.sync.SyncFavorites;
 import edu.pmdm.martinez_albertoimdbapp.sync.UsersSync;
 import edu.pmdm.martinez_albertoimdbapp.utils.KeystoreManager;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements Application.ActivityLifecycleCallbacks, ComponentCallbacks2 {
+
+    private static final String TAG = "MainActivity";
+    public static final String PREF_NAME = "AppPreferences";
+    public static final String KEY_LOGOUT_CANDIDATE = "logout_candidate";
+    public static final String KEY_ACTIVE_UID = "active_uid";
 
     private AppBarConfiguration mAppBarConfiguration;
     private GoogleSignInClient mGoogleSignInClient;
     private String currentUserId = null;
 
-    // Declaramos las vistas del header como variables de instancia
+    // Variables de instancia para el header
     private TextView headerUserName;
     private TextView headerUserEmail;
     private ImageView headerUserProfilePic;
 
+    // Variables para gestionar el ciclo de vida
+    private int activityReferences = 0; // Contador de actividades activas
+    private boolean isActivityChangingConfigurations = false; // Indica si hay cambios de configuración
+    private String lastLoggedInUid = null; // Para evitar múltiples registros de login
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Verificar si hay un logout pendiente al iniciar la app
+        SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        String candidate = prefs.getString(KEY_LOGOUT_CANDIDATE, null);
+        String activeUid = prefs.getString(KEY_ACTIVE_UID, null);
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (candidate != null && activeUid != null) {
+            if (currentUser == null || currentUser.getUid().equals(activeUid)) {
+                updateLogoutLocal(candidate, activeUid);
+                Log.d(TAG, "Logout pendiente registrado al iniciar para uid " + activeUid + ": " + candidate);
+                new UsersSync(this).syncLocalToRemote(activeUid, "logout");
+            } else {
+                Log.d(TAG, "Logout pendiente descartado por cambio de usuario.");
+            }
+
+            // Limpiar las marcas para la nueva sesión
+            prefs.edit().remove(KEY_LOGOUT_CANDIDATE).remove(KEY_ACTIVE_UID).apply();
+        }
+
+        // Registrar los callbacks de ciclo de vida
+        getApplication().registerActivityLifecycleCallbacks(this);
+        getApplication().registerComponentCallbacks(this);
 
         ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -85,11 +111,20 @@ public class MainActivity extends AppCompatActivity {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             currentUserId = user.getUid();
-            SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-            String logoutCandidate = prefs.getString(KEY_LOGOUT_CANDIDATE, null);
-            insertUserInDb(user, logoutCandidate);
+
+            if (candidate != null && activeUid != null) {
+                if (user.getUid().equals(activeUid)) {
+                    updateLogoutLocal(candidate, activeUid);
+                    Log.d(TAG, "Logout pendiente registrado al iniciar para uid " + activeUid + ": " + candidate);
+                    new UsersSync(this).syncLocalToRemote(activeUid, "logout");
+                } else {
+                    Log.d(TAG, "Logout pendiente descartado por cambio de usuario.");
+                }
+                prefs.edit().remove(KEY_LOGOUT_CANDIDATE).remove(KEY_ACTIVE_UID).apply();
+            }
+
+            insertUserInDb(user, null);
             setUserInfo(user, headerUserName, headerUserEmail, headerUserProfilePic);
-            // NOTA: El registro de login en Firestore se realiza desde AppLifecycleManager (en onActivityResumed)
         }
 
         mGoogleSignInClient = GoogleSignIn.getClient(this,
@@ -114,6 +149,206 @@ public class MainActivity extends AppCompatActivity {
 
         logoutButton.setOnClickListener(v -> logout());
     }
+
+    private String getCurrentTime() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+    }
+
+    private void updateLoginLocal(String uid) {
+        DatabaseHelper dbHelper = new DatabaseHelper(this);
+        try {
+            android.content.ContentValues values = new android.content.ContentValues();
+            String currentTime = getCurrentTime();
+            values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGIN, currentTime);
+            int rows = dbHelper.getWritableDatabase().update(
+                    DatabaseHelper.TABLE_USERS,
+                    values,
+                    DatabaseHelper.COLUMN_USER_UID + "=?",
+                    new String[]{uid}
+            );
+            Log.d(TAG, "Último login actualizado para uid " + uid + ": " + currentTime + " (" + rows + " filas afectadas)");
+        } catch (Exception e) {
+            Log.e(TAG, "Error al actualizar último login", e);
+        }
+    }
+
+    private void updateLogoutLocal(String logoutTime, String uid) {
+        DatabaseHelper dbHelper = new DatabaseHelper(this);
+        try {
+            ContentValues values = new ContentValues();
+            values.put(DatabaseHelper.COLUMN_USER_ULTIMO_LOGOUT, logoutTime);
+            int rows = dbHelper.getWritableDatabase().update(
+                    DatabaseHelper.TABLE_USERS,
+                    values,
+                    DatabaseHelper.COLUMN_USER_UID + "=?",
+                    new String[]{uid}
+            );
+            Log.d(TAG, "Último logout actualizado para uid " + uid + ": " + logoutTime + " (" + rows + " filas afectadas)");
+        } catch (Exception e) {
+            Log.e(TAG, "Error al actualizar último logout", e);
+        }
+    }
+
+    private void saveLogoutCandidate(String logoutTime, String uid) {
+        SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+                .putString(KEY_LOGOUT_CANDIDATE, logoutTime)
+                .putString(KEY_ACTIVE_UID, uid)
+                .apply();
+        Log.d(TAG, "Guardado logout candidato para uid " + uid + ": " + logoutTime);
+    }
+
+    private void saveActiveUid(String uid) {
+        SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putString(KEY_ACTIVE_UID, uid).apply();
+        Log.d(TAG, "UID activo guardado: " + uid);
+    }
+
+    @Override
+    public void onActivityCreated(Activity activity, Bundle savedInstanceState) {}
+
+    @Override
+    public void onActivityStarted(Activity activity) {
+        activityReferences++;
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            String currentUid = user.getUid();
+            SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            String activeUid = prefs.getString(KEY_ACTIVE_UID, null);
+            if (activeUid == null || !activeUid.equals(currentUid)) {
+                saveActiveUid(currentUid);
+            }
+            if (!isActivityChangingConfigurations) {
+                updateLoginLocal(currentUid);
+            }
+            prefs.edit().remove(KEY_LOGOUT_CANDIDATE).apply();
+        }
+        Log.d(TAG, "onActivityStarted: app en foreground (contador=" + activityReferences + ").");
+    }
+
+    @Override
+    public void onActivityResumed(Activity activity) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null && !user.getUid().equals(lastLoggedInUid)) {
+            // Registrar login en Firestore solo si el UID ha cambiado
+            DatabaseHelper dbHelper = new DatabaseHelper(getApplicationContext());
+            String encryptedAddress = dbHelper.getUserEncryptedAddress(user.getUid());
+            String encryptedPhone = dbHelper.getUserEncryptedPhone(user.getUid());
+
+            // Actualizar el último UID registrado
+            lastLoggedInUid = user.getUid();
+
+            // Registrar el login localmente
+            updateLoginLocal(lastLoggedInUid);
+
+            // Sincronizar el login con Firestore
+            new UsersSync(getApplicationContext()).syncLocalToRemote(
+                    lastLoggedInUid,
+                    "login",
+                    user.getDisplayName() != null ? user.getDisplayName() : "Usuario",
+                    user.getEmail() != null ? user.getEmail() : "No disponible",
+                    encryptedAddress,
+                    encryptedPhone
+            );
+        }
+    }
+
+    @Override
+    public void onActivityPaused(Activity activity) {}
+
+    @Override
+    public void onActivityStopped(Activity activity) {
+        isActivityChangingConfigurations = activity.isChangingConfigurations();
+        activityReferences--;
+
+        if (activityReferences == 0 && !isActivityChangingConfigurations) {
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null) {
+                String currentTime = getCurrentTime();
+                updateLogoutLocal(currentTime, user.getUid());
+                new UsersSync(this).syncLocalToRemote(user.getUid(), "logout");
+                saveLogoutCandidateIfAppInBackground();
+            }
+            Log.d(TAG, "onActivityStopped: app en background.");
+        }
+    }
+
+    @Override
+    public void onActivitySaveInstanceState(Activity activity, Bundle outState) {}
+
+    @Override
+    public void onActivityDestroyed(Activity activity) {
+        isActivityChangingConfigurations = activity.isChangingConfigurations();
+
+        // Solo actuar si la actividad destruida es la principal y se está cerrando
+        if (activity instanceof MainActivity && activity.isFinishing()) {
+            SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            String activeUid = prefs.getString(KEY_ACTIVE_UID, null);
+
+            if (activeUid != null) {
+                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+                // Registrar el logout solo si el usuario activo coincide con el UID guardado
+                if (user != null && activeUid.equals(user.getUid())) {
+                    String currentTime = getCurrentTime();
+                    updateLogoutLocal(currentTime, activeUid);
+                    new UsersSync(this).syncLocalToRemote(activeUid, "logout");
+                    Log.d(TAG, "onActivityDestroyed: Logout registrado para uid " + activeUid + " a las " + currentTime);
+
+                    // Guardar el logout como candidato en caso de reinicio
+                    saveLogoutCandidate(currentTime, activeUid);
+                } else {
+                    Log.d(TAG, "onActivityDestroyed: No se registra logout porque el usuario activo ha cambiado o se ha eliminado.");
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+
+        // Detectar cuando la UI se oculta (aplicación en segundo plano)
+        if (level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null) {
+                String currentTime = getCurrentTime();
+                saveLogoutCandidate(currentTime, user.getUid());
+                Log.d(TAG, "onTrimMemory: UI oculta, logout candidato guardado.");
+            }
+        }
+    }
+
+    private void saveLogoutCandidateIfAppInBackground() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            String currentTime = getCurrentTime();
+            SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            prefs.edit()
+                    .putString(KEY_LOGOUT_CANDIDATE, currentTime)
+                    .putString(KEY_ACTIVE_UID, user.getUid())
+                    .apply();
+            Log.d(TAG, "Guardado logout candidato: " + currentTime);
+        }
+    }
+
+    private void registerLogoutIfAppIsClosing() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            String currentTime = getCurrentTime();
+            updateLogoutLocal(currentTime, user.getUid());
+            new UsersSync(this).syncLocalToRemote(user.getUid(), "logout");
+            Log.d(TAG, "Logout registrado en onDestroy: " + currentTime);
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+    }
+
+    @Override
+    public void onLowMemory() {}
 
     /**
      * Inserta o actualiza el usuario en la BD local con los datos cifrados.
@@ -296,8 +531,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onDestroy() {
+    protected void onDestroy() {
         super.onDestroy();
+
+        // Intentar registrar el logout en onDestroy
+        registerLogoutIfAppIsClosing();
     }
 
     @Override

@@ -1,8 +1,8 @@
-# 🎥 Martinez_AlbertoIMDbAPP 🎥
+# 🎥 Martinez_AlbertoIMDbAPP v2.0 🎥
 
 ---
 
-🌟 **Aplicación diseñada en Android Studio (Java)** que ofrece una versión personalizada de IMDB, la cual permite al usuario:
+🌟 **Aplicación diseñada en Android Studio (Java)** que ofrece una segunda versión personalizada de IMDB, la cual permite al usuario:
 
 - Descubrir las películas top del momento.
 - Agregar o eliminar películas de su lista de favoritos.
